@@ -42,8 +42,8 @@ a red question mark.
 
 ## Make room when the identifiers are taken
 
-The module's numbers sit in tranches 85 and 86 of the repository's register,
-`ID_RANGES.md`. When something else on the server uses one of them, the
+The module's numbers sit in tranches 85 and 86 of the WoW-mods register,
+[`ID_RANGES.md`](https://github.com/Adrestie/WoW-mods/blob/main/ID_RANGES.md). When something else on the server uses one of them, the
 installer lists each one and installs nothing: the numbers of one of the two
 have to change.
 
