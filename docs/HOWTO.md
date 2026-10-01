@@ -248,6 +248,16 @@ The same thing, seen from the purchase: the module has not read your new links.
 * The client keeps the addons it has been sent. After the module changes, type
   `/aio reset` in game: it clears that cache and reloads the interface.
 
+### The game crashes when the sphere grid opens (ERROR #132 at 0x40CB6A)
+
+Known, not fixed yet. `data/art/Interface/Journeys/JourneysFrame2x.blp`, the rim
+of the cells' icons (`RC.FRAME_SHEET`), is an uncompressed 2048 x 2048 image. A
+stock `Wow.exe` decodes every texture into one buffer sized for 1024 x 1024 at
+32 bits: this one overflows it and the game quits. Only clients that load
+`WarcraftXL.dll` (HD packs) widen that buffer; players must not be assumed to
+have it. The fix is to halve the sheet to 1024 x 1024: `RC.FRAME_COORDS` is
+relative, the Lua needs no change.
+
 ### A Lua error whose line matches nothing
 
 AIO obfuscates the code it sends, and says so itself: *error messages will not
