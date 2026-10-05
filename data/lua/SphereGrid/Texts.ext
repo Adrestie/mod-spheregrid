@@ -1,0 +1,90 @@
+--[[
+    This file is part of mod-spheregrid.
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+    Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program. If not, see <http://www.gnu.org/licenses/>.
+]]
+
+--[[----------------------------------------------------------------------------
+    The module's texts, server side, for every script of this folder.
+
+    One source: the core's `module_string` (English) and `module_string_locale`
+    (every other language), module 'mod-spheregrid', which the C++ module reads
+    too (data/sql/world/spheregrid_02_strings.sql). Each player gets the texts of
+    their client's language, English where there is none. `{}` stands for a
+    value, filled in order.
+
+    An .ext file: the Lua engine loads it before every .lua, so the scripts of
+    this folder find SphereGridTexts ready. `.reload ale` reads the tables again.
+------------------------------------------------------------------------------]]
+
+local MODULE = "mod-spheregrid"
+local LOCALES = { [0] = "enUS", "koKR", "frFR", "deDE", "zhCN", "zhTW", "esES", "esMX", "ruRU" }
+
+local texts = {}                    -- texts[locale][id]; English under enUS
+
+local function Load()
+    texts = { enUS = {} }
+    local q = WorldDBQuery(string.format("SELECT id, string FROM module_string WHERE module = '%s'", MODULE))
+    if q then
+        repeat
+            texts.enUS[q:GetUInt32(0)] = q:GetString(1)
+        until not q:NextRow()
+    end
+    q = WorldDBQuery(string.format("SELECT id, locale, string FROM module_string_locale WHERE module = '%s'", MODULE))
+    if q then
+        repeat
+            local locale = q:GetString(1)
+            texts[locale] = texts[locale] or {}
+            texts[locale][q:GetUInt32(0)] = q:GetString(2)
+        until not q:NextRow()
+    end
+end
+Load()
+
+local function LocaleOf(player)
+    return LOCALES[player:GetDbLocaleIndex()] or "enUS"
+end
+
+-- Fills a text's `{}` in order with the values given.
+local function Fill(text, ...)
+    local values, n = { ... }, 0
+    return (text:gsub("{}", function()
+        n = n + 1
+        return tostring(values[n])
+    end))
+end
+
+SphereGridTexts = {}
+
+-- The texts numbered first to last, in the player's language: what a window receives.
+function SphereGridTexts.For(player, first, last)
+    local own, out = texts[LocaleOf(player)] or {}, {}
+    for id, english in pairs(texts.enUS) do
+        if id >= first and id <= last then out[id] = own[id] or english end
+    end
+    return out
+end
+
+-- One text in the player's language, its `{}` filled with the values given.
+function SphereGridTexts.Text(player, id, ...)
+    local own = texts[LocaleOf(player)] or {}
+    return Fill(own[id] or texts.enUS[id] or ("#" .. id), ...)
+end
+
+-- One text in every language there is, { enUS = ..., frFR = ... }: the form the workbench takes.
+function SphereGridTexts.All(id)
+    local out = {}
+    for locale, byId in pairs(texts) do out[locale] = byId[id] end
+    return out
+end

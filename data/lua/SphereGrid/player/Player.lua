@@ -67,24 +67,28 @@ local STAT_KEYS = {
     "spell_power", "attack_power", "armor_penetration", "expertise", "bonus_healing",
 }
 
--- Messages follow the client's language, the same rule as module_string.
-local LOCALE_FRFR = 2
-local MESSAGES = {
-    no_grid = { "[Sphere grid] No grid is defined for your class yet.",
-                      "[Sphèrier] Aucune grille n'est encore définie pour votre classe." },
-    -- Neither the cost nor what the player holds: the refusal says only that
-    -- there is not enough.
-    not_enough_spherite = { "Not enough Spherite.", "Spherite insuffisante." },
-}
+-- The messages of this script, by their number in the module's texts
+-- (Texts.ext). The refusal for Spherite names neither the cost nor what the
+-- player holds: it says only that there is not enough.
+local MESSAGES = { no_grid = 211, not_enough_spherite = 212 }
+
+-- The texts of the window (Player_Client.lua), numbered 101 to 209.
+local WINDOW_TEXTS_FIRST, WINDOW_TEXTS_LAST = 101, 209
 
 -- An error, or something that cannot be done: the standard red text in the
 -- middle of the screen, as the game does for its own refusals.
 local function SayError(player, key, ...)
-    local m = MESSAGES[key]
-    local text = player:GetDbLocaleIndex() == LOCALE_FRFR and m[2] or m[1]
-    if select("#", ...) > 0 then text = text:format(...) end
-    player:SendNotification(text)
+    player:SendNotification(SphereGridTexts.Text(player, MESSAGES[key], ...))
 end
+
+-- The window receives its texts with its code, in the opening message AIO
+-- sends the player: they are there before it shows.
+AIO.AddOnInit(function(msg, player)
+    if player then
+        msg:Add("SphereGridPlayer", "Texts", SphereGridTexts.For(player, WINDOW_TEXTS_FIRST, WINDOW_TEXTS_LAST))
+    end
+    return msg
+end)
 
 -- ---------------------------------------------------------------------------
 -- Reading the definition from the world database. Cached per class and

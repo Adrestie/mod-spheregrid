@@ -95,7 +95,6 @@ end
 -- rune" for a reforge, Spherite for a grind -- with the amount, read from
 -- mod-spheregrid.conf as the module itself reads it (a display, nothing
 -- more: the module remains the only judge of what is paid).
-local LOCALE_FRFR = 2
 local QUALITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
 -- A result drawn at random shows the type's icon under the game's red
 -- question mark: the module's own textures (data/art/Textures).
@@ -120,9 +119,10 @@ local function GrindAmount(entry)
     return Conf("SphereGrid.Points.Grind.Rune", 750)
 end
 
-local function Text(player, en, fr)
-    return player:GetDbLocaleIndex() == LOCALE_FRFR and fr or en
-end
+-- The texts of the bench, by their number in the module's texts (Texts.ext): the
+-- names, in every language for the workbench to choose from, and the previews.
+local TEXT = { stones = 231, runes = 232, fuse = 233, reroll = 234, reforge = 235, grind = 236,
+               random_stone = 237, random_rune = 238, grind_amount = 239 }
 
 Workbench.Register({
     module = "mod-spheregrid",
@@ -130,16 +130,15 @@ Workbench.Register({
         return stones[entry] ~= nil or runes[entry] == true
     end,
     kinds = {
-        { key = "stone", name = { enUS = "Stones", frFR = "Pierres" },
+        { key = "stone", name = SphereGridTexts.All(TEXT.stones),
           Of = function(entry) return stones[entry] ~= nil end },
-        { key = "rune", name = { enUS = "Runes", frFR = "Runes" },
+        { key = "rune", name = SphereGridTexts.All(TEXT.runes),
           Of = function(entry) return runes[entry] == true end },
     },
     recipes = {
         {
             key = "fuse", slots = 3,
-            name = { enUS = "Merging: the same stone, one quality above.",
-                     frFR = "Fusion : la même pierre, une qualité au-dessus." },
+            name = SphereGridTexts.All(TEXT.fuse),
             Fits = function(_, placed, entry)
                 if not stones[entry] or stones[entry].quality >= QUALITY_COUNT then return false end
                 for _, p in ipairs(placed) do
@@ -158,8 +157,7 @@ Workbench.Register({
         },
         {
             key = "reroll", slots = 2,
-            name = { enUS = "Reroll: another stone, of the same quality.",
-                     frFR = "Relance : une autre pierre, de même qualité." },
+            name = SphereGridTexts.All(TEXT.reroll),
             Fits = function(_, placed, entry)
                 if not stones[entry] then return false end
                 for _, p in ipairs(placed) do
@@ -173,32 +171,29 @@ Workbench.Register({
             Preview = function(player, e)
                 local quality = stones[e[1]].quality
                 return { icon = RANDOM_STONE .. string.lower(QUALITIES[quality]), quality = quality - 1,
-                         text = Text(player, "Stone drawn at random, statistic unknown.",
-                                     "Pierre tirée au hasard, statistique inconnue.") }
+                         text = SphereGridTexts.Text(player, TEXT.random_stone) }
             end,
             Run = function(player, e) player:RunCommand(fmt("spheregrid reroll %d %d", e[1], e[2])) end,
         },
         {
             key = "reforge", slots = 3,
-            name = { enUS = "Recasting: one rune drawn at random from the whole catalogue.",
-                     frFR = "Refonte : une rune tirée au hasard dans tout le catalogue." },
+            name = SphereGridTexts.All(TEXT.reforge),
             Fits = function(_, placed, entry) return runes[entry] == true and AllRunes(placed) end,
             Accepts = function(_, e) return AllRunes(e) end,
             Preview = function(player)
-                return { icon = RANDOM_RUNE, text = Text(player, "Rune drawn at random.", "Rune tirée au hasard."), quality = 4 }
+                return { icon = RANDOM_RUNE, text = SphereGridTexts.Text(player, TEXT.random_rune), quality = 4 }
             end,
             Run = function(player, e) player:RunCommand(fmt("spheregrid reforge %d %d %d", e[1], e[2], e[3])) end,
         },
         {
             key = "grind", slots = 1,
-            name = { enUS = "Grinding: the item is destroyed and turned into Spherite.",
-                     frFR = "Broyage : l'objet est détruit et rendu en Spherite." },
+            name = SphereGridTexts.All(TEXT.grind),
             Fits = function(_, placed, entry)
                 return #placed == 0 and (stones[entry] ~= nil or runes[entry] == true)
             end,
             Accepts = function(_, e) return stones[e[1]] ~= nil or runes[e[1]] == true end,
-            Preview = function(_, e)
-                return { icon = SPHERITE, text = fmt("+%d Spherite", GrindAmount(e[1])) }
+            Preview = function(player, e)
+                return { icon = SPHERITE, text = SphereGridTexts.Text(player, TEXT.grind_amount, GrindAmount(e[1])) }
             end,
             Run = function(player, e) player:RunCommand(fmt("spheregrid grind %d", e[1])) end,
         },

@@ -29,8 +29,8 @@
 
     The way in: a « Sphere grid » button on the talent window, /spheregrid,
     .spheregrid show. With ForeverUI, a button of its micro menu instead of the
-    tab, and Camelot's look (Camelot_Client.lua). Texts bilingual according to
-    the client's language.
+    tab, and Camelot's look (Camelot_Client.lua). Texts in the client's
+    language, sent by the server from the module's tables.
 ------------------------------------------------------------------------------]]
 
 local AIO = AIO or require("AIO")
@@ -43,111 +43,60 @@ local PlayerHandlers = AIO.AddHandlers("SphereGridPlayer", {})
 
 local sqrt, cos, sin, pi   = math.sqrt, math.cos, math.sin, math.pi
 local floor, max, min, abs = math.floor, math.max, math.min, math.abs
-local fmt                  = string.format
 
 -- ---------------------------------------------------------------------------
--- Texts, in the client's language
+-- Texts: NONE here. Their one source is the database (`module_string` and
+-- `module_string_locale` of the core, module 'mod-spheregrid'), shared with the
+-- C++ module; the server sends them with this code, in the language of the
+-- player's client (handler Texts, below). ID gives each text's number.
 -- ---------------------------------------------------------------------------
 
-local FR = GetLocale() == "frFR"
-local L = {
-    title        = FR and "Sphèrier" or "Sphere Grid",
-    button       = FR and "Sphèrier" or "Sphere Grid",
-    points       = FR and "Spherite : |cffffd100%d|r" or "Spherite: |cffffd100%d|r",
-    actives       = FR and "%d / %d actifs" or "%d / %d active",
-    node        = FR and "Nœud" or "Node",
-    slot         = FR and "Slot" or "Socket",
-    slot_desc    = FR and "N'accueille que des runes." or "Accepts runes only.",
-    stone       = FR and "Pierre %s" or "%s stone",
-    spell_title   = FR and "Sort" or "Spell",
-    spell_desc    = FR and "Apprend ce sort à l'activation." or "Teaches this spell when activated.",
-    spell_unknown = FR and "Sort n°%d" or "Spell #%d",
-    node_empty   = FR and "Nœud vide" or "Empty node",
-    empty_desc    = FR and "Recevra une pierre sertie." or "Awaits a socketed stone.",
-    start       = FR and "Point de départ de la classe" or "Class starting cell",
-    state_active   = FR and "Actif" or "Active",
-    state_cost    = FR and "Coût : %d Spherite(s) — cliquez pour acheter" or "Cost: %d Spherite — click to buy",
-    state_path  = FR and "Chemin : %d emplacements, coût total %d Spherite(s) — cliquez pour tout acheter"
-                       or "Path: %d cells, total cost %d Spherite — click to buy them all",
-    unreachable = FR and "Inaccessible : aucun chemin ne mène ici."
-                       or "Unreachable: no path leads here.",
-    confirm     = FR and "Acheter cet emplacement pour %d Spherite(s) ?"
-                       or "Buy this cell for %d Spherite?",
-    confirm_path = FR and "Débloquer %d emplacements d'un coup pour %d Spherite(s) ?"
-                          or "Unlock %d cells at once for %d Spherite?",
-    confirm_spell   = FR and "Réapprendre ce sort pour %d Spherite(s) ?"
-                          or "Relearn this spell for %d Spherite?",
-    buy      = FR and "Buy" or "Buy",
-    cancel      = FR and "Annuler" or "Cancel",
-    summary_title  = FR and "Statistiques" or "Statistics",
-    summary_help   = FR and "Acquis / total de la grille" or "Acquired / grid total",
-    runes_title  = FR and "Runes actives" or "Active runes",
-    runes_empty   = FR and "Aucune rune sertie." or "No rune socketed.",
-    runes_inert = FR and "Runes inactives" or "Inactive runes",
-    spells_title  = FR and "Sorts de classe" or "Class spells",
-    spells_empty   = FR and "Aucun sort pour cette classe." or "No spell for this class.",
-    rune_title   = FR and "Rune" or "Rune",
-    rune_desc    = FR and "Ajoute un rang à %s." or "Adds one rank to %s.",
-    rune_line   = FR and "%s — rang %d" or "%s — rank %d",
-    rune_teaches = FR and "Sertir cette rune vous apprendra %s (rang %d)."
-                       or "Socketing this rune will teach you %s (rank %d).",
-    rune_required  = FR and "Pré-requis : %s" or "Requires: %s",
-    rune_class  = FR and "Cette rune appartient à une autre classe."
-                       or "That rune belongs to another class.",
-    rune_max     = FR and "Trois runes au maximum par sort."
-                       or "Three runes per spell at most.",
-    rune_max_s   = FR and "Trois runes au maximum par statistique."
-                       or "Three runes per statistic at most.",
-    rune_stat_title = FR and "Rune de statistique" or "Statistic rune",
-    rune_stat_desc  = FR and "Majore de %d %% ce que le sphèrier vous accorde en %s."
-                          or "Increases by %d%% what your sphere grid grants in %s.",
-    rune_stat_placed  = FR and "Sertir cette rune majorera de %d %% ce que le sphèrier vous accorde en %s."
-                          or "Socketing this rune will increase by %d%% what your sphere grid grants in %s.",
-    rune_stat_line = FR and "%s +%d %% (%d)" or "%s +%d%% (%d)",
-    rune_item   = FR and "Rune %s" or "Rune of %s",
-    rune_inert  = FR and "%s — rang de base non connu" or "%s — base rank unknown",
-    rune_inert_t = FR and "%s — talent non appris" or "%s — talent not learned",
-    rune_off     = FR and "Sans effet : le talent n'est pas appris."
-                       or "No effect: the talent is not learned.",
-    rune_off_r   = FR and "Sans effet : vous ne connaissez pas %s."
-                       or "No effect: you do not know %s.",
-    -- Socketing and pinning
-    empty_active   = FR and "Vide — à sertir" or "Empty — awaiting a stone",
-    act_socket   = FR and "Clic gauche : sertir une pierre" or "Left-click: socket a stone",
-    act_socket_r = FR and "Clic gauche : sertir une rune" or "Left-click: socket a rune",
-    rune_rank    = FR and "Rang %d" or "Rank %d",
-    act_drop   = FR and "…ou y lâcher une pierre prise dans un sac"
-                       or "…or drop a stone from your bags onto it",
-    act_pin  = FR and "Clic droit : épingle de l'oubli" or "Right-click: Pin of Oblivion",
-    picker_title  = FR and "Sertir une pierre" or "Socket a stone",
-    picker_empty   = FR and "Aucune pierre dans vos sacs." or "No stone in your bags.",
-    picker_scroll = FR and "Molette pour faire défiler" or "Scroll to see more",
-    pin_rune_pct = FR and "Vider cet emplacement ?\n\n|cffff5555%s sera détruite et la majoration retombera à %d %%.|r\nÉpingles en sac : %d"
-                        or "Empty this cell?\n\n|cffff5555%s will be destroyed and the bonus will drop back to %d%%.|r\nPins in bags: %d",
-    pin_rune_rank = FR and "Vider cet emplacement ?\n\n|cffff5555%s sera détruite et le sort retournera au rang %d.|r\nÉpingles en sac : %d"
-                        or "Empty this cell?\n\n|cffff5555%s will be destroyed and the spell will drop back to rank %d.|r\nPins in bags: %d",
-    pin_rune  = FR and "Vider cet emplacement ?\n\n|cffff5555%s sera détruite.|r\nÉpingles en sac : %d"
-                        or "Empty this cell?\n\n|cffff5555%s will be destroyed.|r\nPins in bags: %d",
-    pin_text = FR and "Vider cet emplacement ?\n\n|cffff5555%s sera détruit.|r\nÉpingles en sac : %d"
-                        or "Empty this cell?\n\n|cffff5555%s will be destroyed.|r\nPins in bags: %d",
-    pin_spell  = FR and "Oublier ce sort ?\n\n|cffff5555%s sera oublié.|r\nÉpingles en sac : %d"
-                        or "Forget this spell?\n\n|cffff5555%s will be forgotten.|r\nPins in bags: %d",
-    confirm       = FR and "Valider" or "Confirm",
-    socket_text  = FR and "Sertir %s dans cet emplacement ?\n\n|cff88ff88%s|r"
-                        or "Socket %s into this cell?\n\n|cff88ff88%s|r",
-    -- An item taken in hand from a bag: the window's banner.
-    hand_stone   = FR and "%s en main — cliquez un emplacement vide. Clic droit pour reposer."
-                        or "%s in hand — click an empty cell. Right-click to put it back.",
-    hand_pin  = FR and "%s en main — cliquez un emplacement à vider. Clic droit pour la reposer."
-                        or "%s in hand — click a cell to empty. Right-click to put it back.",
-    -- Resetting: the confirmation reads exactly as it was asked for, word for word.
-    reset_button = FR and "Réinitialiser" or "Reset",
-    reset_text  = FR and "Réinitialiser votre Sphèrier va retirer votre progression, vous rembourser les points dépensés et sans modifier les nœuds ou runes."
-                        or "Resetting your Sphere Grid will remove your progression and refund the points you spent, without changing the nodes or runes.",
-    content_spell  = FR and "Sort appris" or "Spell learned",
-    content_forgotten = FR and "Sort oublié — recliquez pour le réapprendre (coût habituel)"
-                        or "Spell forgotten — click again to relearn (usual cost)",
+local ID = {
+    title = 101, button = 102, points = 103, actives = 104, node = 105, slot = 106, slot_desc = 107,
+    stone = 108, spell_title = 109, spell_desc = 110, spell_unknown = 111, node_empty = 112, empty_desc = 113,
+    start = 114, state_active = 115, state_cost = 116, state_path = 117, unreachable = 118, confirm_buy = 119,
+    confirm_path = 120, confirm_spell = 121, buy = 122, cancel = 123, summary_title = 124, summary_help = 125,
+    runes_title = 126, runes_empty = 127, runes_inert = 128, spells_title = 129, spells_empty = 130,
+    rune_title = 131, rune_desc = 132, rune_line = 133, rune_teaches = 134, rune_required = 135,
+    rune_class = 136, rune_max = 137, rune_max_s = 138, rune_stat_title = 139, rune_stat_desc = 140,
+    rune_stat_placed = 141, rune_stat_line = 142, rune_item = 143, rune_inert = 144, rune_inert_t = 145,
+    rune_off = 146, rune_off_r = 147, empty_active = 148, act_socket = 149, act_socket_r = 150, rune_rank = 151,
+    act_drop = 152, act_pin = 153, picker_title = 154, picker_empty = 155, picker_scroll = 156,
+    pin_rune_pct = 157, pin_rune_rank = 158, pin_rune = 159, pin_text = 160, pin_spell = 161, confirm = 162,
+    socket_text = 163, hand_stone = 164, hand_pin = 165, reset_button = 166, reset_text = 167,
+    content_spell = 168, content_forgotten = 169, stat_stamina = 181, stat_intellect = 182, stat_spirit = 183,
+    stat_agility = 184, stat_strength = 185, stat_parry = 186, stat_block = 187, stat_dodge = 188,
+    stat_haste = 189, stat_crit = 190, stat_hit = 191, stat_spell_power = 192, stat_attack_power = 193,
+    stat_armor_penetration = 194, stat_expertise = 195, stat_bonus_healing = 196, quality1 = 197,
+    quality2 = 198, quality3 = 199, quality4 = 200, quality5 = 201,
 }
+local TEXTS = {}
+
+-- L.key: the text of that key; the key itself until the texts have come.
+local L = setmetatable({}, { __index = function(_, key) return TEXTS[ID[key]] or key end })
+
+-- string.format for the patterns of this code; for the module's texts, whose
+-- `{}` stand for values filled in order (a number shows whole, as %d did).
+local function fmt(pattern, ...)
+    if not pattern:find("{}", 1, true) then return pattern:format(...) end
+    local values, n = { ... }, 0
+    return (pattern:gsub("{}", function()
+        n = n + 1
+        local v = values[n]
+        if type(v) == "number" then v = v < 0 and -floor(-v) or floor(v) end
+        return tostring(v)
+    end))
+end
+
+-- A dialog's words, read when it shows: the texts come after this code, in
+-- AIO's opening message. words: { field = key of L }.
+local function Worded(dialog, words)
+    return setmetatable(dialog, { __index = function(_, field) return words[field] and L[words[field]] end })
+end
+
+-- French elides "de" in a rune's name (see OfSpell): the one rule of a language
+-- that lives in code.
+local FR = GetLocale() == "frFR"
 
 -- The order of the sixteen statistics (docs/PRESENTATION.md): the five primary
 -- ones, then the secondary. It is also the order of the summary.
@@ -158,32 +107,15 @@ local STAT_ORDER = {
     "expertise", "bonus_healing",
 }
 
-local STAT_LABELS = {
-    stamina = FR and "Endurance" or "Stamina",
-    intellect = FR and "Intelligence" or "Intellect",
-    spirit = FR and "Esprit" or "Spirit",
-    agility = FR and "Dextérité" or "Agility",
-    strength = FR and "Force" or "Strength",
-    parry = FR and "Parade" or "Parry",
-    block = FR and "Blocage" or "Block",
-    dodge = FR and "Esquive" or "Dodge",
-    haste = FR and "Hâte" or "Haste",
-    crit = FR and "Critique" or "Critical strike",
-    hit = FR and "Touché" or "Hit",
-    spell_power = FR and "Puissance des sorts" or "Spell power",
-    attack_power = FR and "Puissance d'attaque" or "Attack power",
-    armor_penetration = FR and "Pénétration d'armure" or "Armor penetration",
-    expertise = FR and "Expertise" or "Expertise",
-    bonus_healing = FR and "Bonus des soins" or "Healing bonus",
-}
+local STAT_LABELS = setmetatable({}, { __index = function(_, stat) return TEXTS[ID["stat_" .. stat]] end })
 
 -- What each quality grants -- a settled design (docs/PRESENTATION.md).
 local QUALITIES = {
-    { label = FR and "Commun"     or "Common",    bonus = 5 },
-    { label = FR and "Inhabituel" or "Uncommon",  bonus = 7 },
-    { label = FR and "Rare"       or "Rare",      bonus = 10 },
-    { label = FR and "Épique"     or "Epic",      bonus = 15 },
-    { label = FR and "Légendaire" or "Legendary", bonus = 30 },
+    { key = "quality1", bonus = 5 },
+    { key = "quality2", bonus = 7 },
+    { key = "quality3", bonus = 10 },
+    { key = "quality4", bonus = 15 },
+    { key = "quality5", bonus = 30 },
 }
 
 -- ---------------------------------------------------------------------------
@@ -1127,10 +1059,8 @@ end
 -- The confirm button of a pin is greyed while the player carries none: the
 -- module's refusal would still be the real barrier, but it is better to show at
 -- once that the gesture cannot be made.
-StaticPopupDialogs["SPHEREGRID_PIN"] = {
+StaticPopupDialogs["SPHEREGRID_PIN"] = Worded({
     text = "%s",
-    button1 = L.confirm,
-    button2 = L.cancel,
     OnShow = function(self)
         local button = _G[self:GetName() .. "Button1"]
         if not button then return end
@@ -1149,7 +1079,7 @@ StaticPopupDialogs["SPHEREGRID_PIN"] = {
     whileDead = true,
     hideOnEscape = true,
     showAlert = true,
-}
+}, { button1 = "confirm", button2 = "cancel" })
 
 -- Set just before opening: `OnShow` is called BEFORE the caller fills
 -- `popup.data`, so it can read nothing from it. The same detour as for the pin,
@@ -1157,10 +1087,8 @@ StaticPopupDialogs["SPHEREGRID_PIN"] = {
 local socketBlocked = false
 
 -- Socketing consumes the stone, so it is confirmed, as pinning is.
-StaticPopupDialogs["SPHEREGRID_SOCKET"] = {
+StaticPopupDialogs["SPHEREGRID_SOCKET"] = Worded({
     text = "%s",
-    button1 = L.confirm,
-    button2 = L.cancel,
     OnShow = function(self)
         local button = _G[self:GetName() .. "Button1"]
         if not button then return end
@@ -1176,7 +1104,7 @@ StaticPopupDialogs["SPHEREGRID_SOCKET"] = {
     timeout = 0,
     whileDead = true,
     hideOnEscape = true,
-}
+}, { button1 = "confirm", button2 = "cancel" })
 
 function ACT.AskSocket(nodeId, entry)
     local descriptor = ACT.Socketable(entry)
@@ -1353,7 +1281,7 @@ local function ShowTooltip(btn, n)
         local q = RC.QUALITY_COLORS[quality] or RC.QUALITY_COLORS[1]
         local qual = QUALITIES[quality] or QUALITIES[1]
         GameTooltip:SetText(L.node, 1, 1, 1)
-        GameTooltip:AddLine(fmt(L.stone, qual and qual.label or "?"), q[1], q[2], q[3], true)
+        GameTooltip:AddLine(fmt(L.stone, qual and L[qual.key] or "?"), q[1], q[2], q[3], true)
         GameTooltip:AddLine(fmt("+%d %s", amount, STAT_LABELS[stat] or "?"), 0.1, 1, 0.1, true)
     end
 
@@ -1387,10 +1315,8 @@ local function ShowTooltip(btn, n)
     GameTooltip:Show()
 end
 
-StaticPopupDialogs["SPHEREGRID_BUY"] = {
+StaticPopupDialogs["SPHEREGRID_BUY"] = Worded({
     text = "%s",
-    button1 = L.buy,
-    button2 = L.cancel,
     OnAccept = function(self, data)
         AIO.Handle("SphereGridPlayer", "BuyPath", data)
     end,
@@ -1404,15 +1330,12 @@ StaticPopupDialogs["SPHEREGRID_BUY"] = {
     timeout = 0,
     whileDead = true,
     hideOnEscape = true,
-}
+}, { button1 = "buy", button2 = "cancel" })
 
 -- RESETTING: hand the whole grid back and recover the Spherite spent on this
 -- character. It is all in the module's command; the client only asks for
 -- confirmation, then refreshes on the answer.
-StaticPopupDialogs["SPHEREGRID_RESET"] = {
-    text = L.reset_text,
-    button1 = L.confirm,
-    button2 = L.cancel,
+StaticPopupDialogs["SPHEREGRID_RESET"] = Worded({
     OnAccept = function()
         AIO.Handle("SphereGridPlayer", "Reset")
     end,
@@ -1420,7 +1343,7 @@ StaticPopupDialogs["SPHEREGRID_RESET"] = {
     whileDead = true,
     hideOnEscape = true,
     showAlert = true,
-}
+}, { text = "reset_text", button1 = "confirm", button2 = "cancel" })
 
 -- EVERY GESTURE ON THE GRID COMES THROUGH HERE.
 --
@@ -1489,7 +1412,7 @@ local function OnNodeClick(n, button, btn)
         return
     end
 
-    local text = (#path == 1) and fmt(L.confirm, cost)
+    local text = (#path == 1) and fmt(L.confirm_buy, cost)
         or fmt(L.confirm_path, #path, cost)
     local popup = StaticPopup_Show("SPHEREGRID_BUY", text)
     if not popup then return end
@@ -3095,6 +3018,12 @@ local function UnpackState(state)
         end
     end
     return state
+end
+
+-- The texts of this window, in the language of the player's client: they come
+-- with this code, in AIO's opening message, before anything shows.
+function PlayerHandlers.Texts(_, texts)
+    if type(texts) == "table" then TEXTS = texts end
 end
 
 -- `wire` is false when the server knows we already hold this version: only the

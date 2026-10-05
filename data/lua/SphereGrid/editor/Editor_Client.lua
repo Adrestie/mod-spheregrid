@@ -47,7 +47,54 @@ local EditorHandlers = AIO.AddHandlers("SphereGridEditor", {})
 local sqrt, cos, sin, pi     = math.sqrt, math.cos, math.sin, math.pi
 local floor, max, min, abs   = math.floor, math.max, math.min, math.abs
 local random                 = math.random
-local fmt                    = string.format
+
+-- ---------------------------------------------------------------------------
+-- Texts: NONE here. Their one source is the database (`module_string` and
+-- `module_string_locale` of the core, module 'mod-spheregrid'); the server sends
+-- them with the opening, in the language of the player's client (handler
+-- OpenEditor, below). ID gives each text's number.
+-- ---------------------------------------------------------------------------
+
+local ID = {
+    all_classes = 301, class_n = 302, slot = 303, slot_desc = 304, spell = 305, class_spell = 306,
+    class_invisible = 307, fallback_all = 308, spell_desc = 309, empty_node = 310, empty_desc = 311,
+    node = 312, stone = 313, start = 314, cell_place = 315, preview_cleared = 316, links_cut = 317,
+    no_link = 318, link_held = 319, selection_cancelled = 320, link_removed = 321, link_created = 322,
+    cell_removed = 323, drawn = 324, filter_ms = 325, filter_none = 326, empty_place = 327, place = 328,
+    place_click = 329, cell_restored = 330, cluster_n = 331, cluster_pos = 332, click_delete = 333,
+    drag_move = 334, cluster_deleted_n = 335, cluster_moving = 336, help_link = 337, help_cluster = 338,
+    help_preview = 339, help_select = 340, spells_title = 341, id_unknown = 342, fallback = 343, number = 344,
+    invisible_class = 345, close = 346, learns = 347, no_own_spell = 348, cell_title = 349,
+    classes_served = 350, fallback_no = 351, no_fallback = 352, nothing_selected = 353, counts = 354,
+    starts = 355, no_start = 356, bought = 357, zoom = 358, title = 359, tools = 360, tool_select = 361,
+    tool_cluster = 362, tool_link = 363, tool_preview = 364, selection = 365, type = 366, stat = 367,
+    quality = 368, kind_cycle = 369, to_socket = 370, to_spell = 371, to_node = 372, stone_toggle = 373,
+    stone_out = 374, stone_in = 375, fallback_label = 376, spell_set = 377, by_class = 378,
+    select_spell_first = 379, stat_prev = 380, stat_next = 381, quality_prev = 382, quality_next = 383,
+    random = 384, remove_cell = 385, set_start = 386, start_removed = 387, start_set = 388,
+    selected_cluster = 389, rotation_prev = 390, rotation_next = 391, delete_cluster = 392,
+    cluster_deleted = 393, file = 394, save = 395, load = 396, verify = 397, clear = 398,
+    layout_cleared = 399, cluster_laid = 400, image_ms = 401, image_none = 402, cluster_put = 403,
+    recentre = 404, filter_on = 405, filter_off = 406, in_store = 407, no_layout = 408, first_hint = 409,
+    report = 410, no_fault = 411, loaded = 412,
+}
+local TEXTS = {}
+
+-- L.key: the text of that key; the key itself until the texts have come.
+local L = setmetatable({}, { __index = function(_, key) return TEXTS[ID[key]] or key end })
+
+-- string.format for the patterns of this code; for the module's texts, whose
+-- `{}` stand for values filled in order (a number shows whole, as %d did).
+local function fmt(pattern, ...)
+    if not pattern:find("{}", 1, true) then return pattern:format(...) end
+    local values, n = { ... }, 0
+    return (pattern:gsub("{}", function()
+        n = n + 1
+        local v = values[n]
+        if type(v) == "number" then v = v < 0 and -floor(-v) or floor(v) end
+        return tostring(v)
+    end))
+end
 
 -- ---------------------------------------------------------------------------
 -- Drawing constants
@@ -188,20 +235,22 @@ local session = { geometry = { radii = { 1.1, 2.1, 3.1 }, branches = 8 },
 -- (1-9 and 11).
 local doc = { clusters = {}, nodes = {}, edges = {}, nextCluster = 1, nextNode = 1, starts = {} }
 
--- The WotLK classes, in the client's order. Zero is the older single mark, kept
--- for the per-class sheets.
+-- The WotLK classes, in the client's order, with their file token. Zero is the
+-- older single mark, kept for the per-class sheets.
 local CLASSES = {
-    { 0, "all classes" }, { 1, "Warrior" }, { 2, "Paladin" }, { 3, "Hunter" },
-    { 4, "Rogue" }, { 5, "Priest" }, { 6, "Death knight" }, { 7, "Shaman" },
-    { 8, "Mage" }, { 9, "Warlock" }, { 11, "Druid" },
+    { 0 }, { 1, "WARRIOR" }, { 2, "PALADIN" }, { 3, "HUNTER" },
+    { 4, "ROGUE" }, { 5, "PRIEST" }, { 6, "DEATHKNIGHT" }, { 7, "SHAMAN" },
+    { 8, "MAGE" }, { 9, "WARLOCK" }, { 11, "DRUID" },
 }
 local startClass = 1          -- the index into CLASSES of the class being shown
 
+-- A class's name in the client's language, read when shown.
 local function ClassName(id)
+    if id == 0 then return L.all_classes end
     for _, c in ipairs(CLASSES) do
-        if c[1] == id then return c[2] end
+        if c[1] == id then return LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[c[2]] or c[2] end
     end
-    return "class " .. tostring(id)
+    return fmt(L.class_n, id)
 end
 
 -- The classes a cell is the start of (a list, usually empty).
@@ -698,38 +747,36 @@ end
 local function ShowNodeTooltip(btn, n)
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
     if n.kind == RC.KIND_SLOT then
-        GameTooltip:SetText("Slot", 0.31, 0.69, 0.89)
-        GameTooltip:AddLine("Accepts runes only.", 0.8, 0.8, 0.8, true)
+        GameTooltip:SetText(L.slot, 0.31, 0.69, 0.89)
+        GameTooltip:AddLine(L.slot_desc, 0.8, 0.8, 0.8, true)
     elseif n.kind == RC.KIND_SPELL then
-        GameTooltip:SetText("Spell", RC.SPELL_COLOR[1], RC.SPELL_COLOR[2], RC.SPELL_COLOR[3])
+        GameTooltip:SetText(L.spell, RC.SPELL_COLOR[1], RC.SPELL_COLOR[2], RC.SPELL_COLOR[3])
         -- One spell per class: the list says who learns what here.
         for _, c in ipairs(CLASSES) do
             if c[1] ~= 0 then
                 local id = SpellFor(n, c[1])
                 if id then
                     local name = GetSpellInfo(id)
-                    GameTooltip:AddLine(fmt("%s: %s (no. %d)", c[2], name or "?", id), 1, 1, 1, true)
+                    GameTooltip:AddLine(fmt(L.class_spell, ClassName(c[1]), name or "?", id), 1, 1, 1, true)
                 else
                     -- With no spell, the cell does not exist for that class.
-                    GameTooltip:AddLine(fmt("%s: invisible (no spell)", c[2]), 0.55, 0.55, 0.55, true)
+                    GameTooltip:AddLine(fmt(L.class_invisible, ClassName(c[1])), 0.55, 0.55, 0.55, true)
                 end
             end
         end
         if n.spell and n.spell > 0 then
-            GameTooltip:AddLine(fmt("All-class fallback: no. %d", n.spell), 0.6, 0.6, 0.6, true)
+            GameTooltip:AddLine(fmt(L.fallback_all, n.spell), 0.6, 0.6, 0.6, true)
         end
-        GameTooltip:AddLine("Each class learns its own spell here; with no spell, it sees neither the cell nor its links.",
-            0.8, 0.8, 0.8, true)
+        GameTooltip:AddLine(L.spell_desc, 0.8, 0.8, 0.8, true)
     elseif not n.stat then
-        GameTooltip:SetText("Empty node", RC.EMPTY_NODE_COLOR[1], RC.EMPTY_NODE_COLOR[2], RC.EMPTY_NODE_COLOR[3])
-        GameTooltip:AddLine("No stone laid in: it will take one socketed in game.",
-            0.8, 0.8, 0.8, true)
+        GameTooltip:SetText(L.empty_node, RC.EMPTY_NODE_COLOR[1], RC.EMPTY_NODE_COLOR[2], RC.EMPTY_NODE_COLOR[3])
+        GameTooltip:AddLine(L.empty_desc, 0.8, 0.8, 0.8, true)
     else
         local s = session.stats[n.stat]
         local q = RC.QUALITY_COLORS[n.quality or 1] or RC.QUALITY_COLORS[1]
         local qual = session.qualities[n.quality or 1]
-        GameTooltip:SetText("Node", 1, 1, 1)
-        GameTooltip:AddLine(fmt("%s stone", qual and qual.label or "?"),
+        GameTooltip:SetText(L.node, 1, 1, 1)
+        GameTooltip:AddLine(fmt(L.stone, qual and qual.label or "?"),
             q[1], q[2], q[3], true)
         GameTooltip:AddLine(fmt("+%d %s", qual and qual.bonus or 0, s and s.label or "?"),
             0.1, 1, 0.1, true)
@@ -738,11 +785,10 @@ local function ShowNodeTooltip(btn, n)
     if #cd > 0 then
         local names = {}
         for _, c in ipairs(cd) do names[#names + 1] = ClassName(c) end
-        GameTooltip:AddLine("Start: " .. table.concat(names, ", "), 1, 0.82, 0, true)
+        GameTooltip:AddLine(fmt(L.start, table.concat(names, ", ")), 1, 0.82, 0, true)
     end
     GameTooltip:AddLine(" ")
-    GameTooltip:AddLine(fmt("no. %d · cluster %d · ring %d · branch %d",
-        n.id, n.cluster, n.ring, n.branch), 0.6, 0.6, 0.6, true)
+    GameTooltip:AddLine(fmt(L.cell_place, n.id, n.cluster, n.ring, n.branch), 0.6, 0.6, 0.6, true)
     GameTooltip:Show()
 end
 
@@ -769,7 +815,7 @@ local function OnNodeClick(n, button)
     if tool == "preview" then
         if button == "RightButton" then
             bought = {}
-            SetStatus("Preview cleared.")
+            SetStatus(L.preview_cleared)
         else
             bought[n.id] = (not bought[n.id]) or nil
         end
@@ -784,34 +830,33 @@ local function OnNodeClick(n, button)
             local cut = CutAllLinks(n.id)
             linkPending = nil
             SetStatus(cut > 0
-                and fmt("Cell %d: %d link(s) cut.", n.id, cut)
-                or fmt("Cell %d had no link.", n.id))
+                and fmt(L.links_cut, n.id, cut)
+                or fmt(L.no_link, n.id))
             Rebuild()
             return
         end
 
         if not linkPending then
             linkPending = n.id
-            SetStatus(fmt("Cell %d held (%d link(s)). Click the second to link or unlink.",
-                n.id, CountLinks(n.id)))
+            SetStatus(fmt(L.link_held, n.id, CountLinks(n.id)))
         elseif linkPending == n.id then
             linkPending = nil
-            SetStatus("Selection cancelled.")
+            SetStatus(L.selection_cancelled)
         else
             local i = FindEdge(linkPending, n.id)
             if i then
                 table.remove(doc.edges, i)
-                SetStatus(fmt("Link %d - %d removed.", linkPending, n.id))
+                SetStatus(fmt(L.link_removed, linkPending, n.id))
             else
                 doc.edges[#doc.edges + 1] = { linkPending, n.id }
-                SetStatus(fmt("Link %d - %d created.", linkPending, n.id))
+                SetStatus(fmt(L.link_created, linkPending, n.id))
             end
             linkPending = nil
         end
     elseif button == "RightButton" then
         local id = n.id
         RemoveNode(id)
-        SetStatus(fmt("Cell %d removed. Its place remains: click it to put the cell back.", id))
+        SetStatus(fmt(L.cell_removed, id))
     else
         selNode    = n.id
         selCluster = n.cluster
@@ -1168,7 +1213,7 @@ local function Cull(strength)
     shownA, newA = newA, shownA
 
     if UI.drawnLabel and (drawn ~= UI.drawn or traces ~= UI.traces) then
-        UI.drawnLabel:SetText(fmt("%d drawn, %d links", drawn, traces))
+        UI.drawnLabel:SetText(fmt(L.drawn, drawn, traces))
     end
     UI.drawn, UI.traces = drawn, traces
     -- The measure: the worst filtering of the last half second, shown at the foot.
@@ -1177,7 +1222,7 @@ local function Cull(strength)
     local now = GetTime()
     if now - perf.since > 0.5 then
         if UI.perfLabel then
-            UI.perfLabel:SetText(fmt("filter %.1f ms", perf.max))
+            UI.perfLabel:SetText(fmt(L.filter_ms, ("%.1f"):format(perf.max)))
         end
         perf.max, perf.since = 0, now
     end
@@ -1488,11 +1533,10 @@ function Rebuild()
                             local s = self.spot
                             if not s then return end
                             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                            GameTooltip:SetText("Place vide", 0.6, 0.6, 0.6)
-                            GameTooltip:AddLine(fmt("cluster %d · ring %d · branch %d",
-                                s.cluster, s.ring, s.branch), 0.5, 0.5, 0.5, true)
-                            GameTooltip:AddLine("Click: put a cell back here.",
-                                1, 0.82, 0, true)
+                            GameTooltip:SetText(L.empty_place, 0.6, 0.6, 0.6)
+                            GameTooltip:AddLine(fmt(L.place, s.cluster, s.ring, s.branch),
+                                0.5, 0.5, 0.5, true)
+                            GameTooltip:AddLine(L.place_click, 1, 0.82, 0, true)
                             GameTooltip:Show()
                         end)
                         g:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1502,8 +1546,7 @@ function Rebuild()
                             local n = AddNodeAt(s.cluster, s.ring, s.branch)
                             if n then
                                 selNode, selCluster = n.id, n.cluster
-                                SetStatus(fmt("Cell %d restored in cluster %d, ring %d, branch %d.",
-                                    n.id, s.cluster, s.ring, s.branch))
+                                SetStatus(fmt(L.cell_restored, n.id, s.cluster, s.ring, s.branch))
                             end
                             Rebuild()
                         end)
@@ -1542,11 +1585,11 @@ function Rebuild()
                 local cc = self.cluster
                 if not cc then return end
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(fmt("Cluster %d", cc.id), 1, 0.82, 0)
-                GameTooltip:AddLine(fmt("x %.2f   y %.2f   rotation %.0f°",
-                    cc.x, cc.y, (cc.rot or 0) * 180 / pi), 0.8, 0.8, 0.8, true)
-                GameTooltip:AddLine(tool == "cluster" and "Click: delete"
-                    or "Drag: move", 1, 0.6, 0.6, true)
+                GameTooltip:SetText(fmt(L.cluster_n, cc.id), 1, 0.82, 0)
+                GameTooltip:AddLine(fmt(L.cluster_pos, ("%.2f"):format(cc.x), ("%.2f"):format(cc.y),
+                    ("%.0f"):format((cc.rot or 0) * 180 / pi)), 0.8, 0.8, 0.8, true)
+                GameTooltip:AddLine(tool == "cluster" and L.click_delete
+                    or L.drag_move, 1, 0.6, 0.6, true)
                 GameTooltip:Show()
             end)
             m:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1556,7 +1599,7 @@ function Rebuild()
                 if not cc then return end
                 if tool == "cluster" then
                     RemoveCluster(cc.id)
-                    SetStatus(fmt("Cluster %d deleted.", cc.id))
+                    SetStatus(fmt(L.cluster_deleted_n, cc.id))
                 else
                     selCluster = cc.id
                 end
@@ -1566,8 +1609,7 @@ function Rebuild()
             m:SetScript("OnDragStart", function(self)
                 if tool ~= "select" or not self.cluster then return end
                 UI.dragCluster = self.cluster.id
-                SetStatus(fmt("Cluster %d moving - let go to put it down.",
-                    self.cluster.id))
+                SetStatus(fmt(L.cluster_moving, self.cluster.id))
             end)
             m:SetScript("OnDragStop", function()
                 UI.dragCluster = nil
@@ -1646,16 +1688,13 @@ local function SetTool(t)
     end
 
     if t == "link" then
-        SetStatus("Link: left-click two cells to make or unmake the link between them. "
-            .. "Right-click a cell to cut every link of its own.")
+        SetStatus(L.help_link)
     elseif t == "cluster" then
-        SetStatus("Cluster: click the background to lay one down, click a marker to delete it.")
+        SetStatus(L.help_cluster)
     elseif t == "preview" then
-        SetStatus("Preview: left-click to buy or hand back a cell, right-click to clear it all. "
-            .. "A link turns cyan when both its ends are bought. None of this is saved.")
+        SetStatus(L.help_preview)
     else
-        SetStatus("Select: left-click to change a cell, right-click to remove it, "
-            .. "click an empty place to put one back. Drag a marker to move the cluster.")
+        SetStatus(L.help_select)
     end
 
     Rebuild()
@@ -1682,7 +1721,7 @@ local function UpdateSpellsFrame()
         w:Hide()
         return
     end
-    w.title:SetText(fmt("Spells of cell %d", n.id))
+    w.title:SetText(fmt(L.spells_title, n.id))
     for _, line in ipairs(w.lines) do
         local own = n.spells and n.spells[line.class]
         if not line.box:HasFocus() then
@@ -1695,14 +1734,14 @@ local function UpdateSpellsFrame()
                 line.name:SetText(name)
                 line.name:SetTextColor(1, 1, 1)
             else
-                line.name:SetText("identifier unknown to the client")
+                line.name:SetText(L.id_unknown)
                 line.name:SetTextColor(1, 0.4, 0.4)
             end
         elseif actual then
-            line.name:SetText(fmt("fallback: %s", name or ("no. " .. actual)))
+            line.name:SetText(fmt(L.fallback, name or fmt(L.number, actual)))
             line.name:SetTextColor(0.6, 0.6, 0.6)
         else
-            line.name:SetText("invisible to this class")
+            line.name:SetText(L.invisible_class)
             line.name:SetTextColor(0.55, 0.55, 0.55)
         end
     end
@@ -1726,7 +1765,7 @@ local function OpenSpellsFrame()
         w:EnableMouse(true)
         w.title = w:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         w.title:SetPoint("TOPLEFT", 12, -10)
-        local close = MakeButton(w, "Fermer", 70, 20, function() w:Hide() end)
+        local close = MakeButton(w, L.close, 70, 20, function() w:Hide() end)
         close:SetPoint("TOPRIGHT", -10, -8)
         w.lines = {}
         local y = -36
@@ -1737,7 +1776,7 @@ local function OpenSpellsFrame()
                 line.label:SetPoint("TOPLEFT", 12, y - 4)
                 line.label:SetWidth(130)
                 line.label:SetJustifyH("LEFT")
-                line.label:SetText(c[2])
+                line.label:SetText(ClassName(c[1]))
                 local box = CreateFrame("EditBox", nil, w)
                 box:SetPoint("TOPLEFT", 146, y)
                 box:SetWidth(90)
@@ -1756,8 +1795,8 @@ local function OpenSpellsFrame()
                         n.spells = n.spells or {}
                         n.spells[line.class] = (id > 0) and id or nil
                         SetStatus(id > 0
-                            and fmt("Cell %d: %s learns spell no. %d.", n.id, c[2], id)
-                            or fmt("Cell %d: no spell of its own for %s any more.", n.id, c[2]))
+                            and fmt(L.learns, n.id, ClassName(c[1]), id)
+                            or fmt(L.no_own_spell, n.id, ClassName(c[1])))
                         Rebuild()
                     end
                     self:ClearFocus()
@@ -1782,24 +1821,24 @@ function UpdateInspector()
 
     local n = selNode and NodeById(selNode)
     if n then
-        UI.inspTitle:SetText(fmt("Cell %d — %d link(s)", n.id, CountLinks(n.id)))
+        UI.inspTitle:SetText(fmt(L.cell_title, n.id, CountLinks(n.id)))
         if n.kind == RC.KIND_SLOT then
-            UI.inspType:SetText("Slot")
+            UI.inspType:SetText(L.slot)
             UI.inspStat:SetText("—")
             UI.inspQuality:SetText("—")
         elseif n.kind == RC.KIND_SPELL then
-            UI.inspType:SetText("Spell")
+            UI.inspType:SetText(L.spell)
             local nb, total = ClassesServed(n)
-            UI.inspStat:SetText(fmt("%d / %d classes served", nb, total))
+            UI.inspStat:SetText(fmt(L.classes_served, nb, total))
             local spellName = n.spell and n.spell > 0 and GetSpellInfo(n.spell)
-            UI.inspQuality:SetText(spellName and fmt("repli : %s", spellName)
-                or (n.spell and n.spell > 0 and fmt("fallback no. %d", n.spell)) or "no fallback")
+            UI.inspQuality:SetText(spellName and fmt(L.fallback, spellName)
+                or (n.spell and n.spell > 0 and fmt(L.fallback_no, n.spell)) or L.no_fallback)
         elseif not n.stat then
-            UI.inspType:SetText("Empty node")
+            UI.inspType:SetText(L.empty_node)
             UI.inspStat:SetText("—")
             UI.inspQuality:SetText("—")
         else
-            UI.inspType:SetText("Node")
+            UI.inspType:SetText(L.node)
             local s = session.stats[n.stat]
             local qual = session.qualities[n.quality or 1]
             UI.inspStat:SetText(s and s.label or "?")
@@ -1811,7 +1850,7 @@ function UpdateInspector()
         UpdateSpellsFrame()
     else
         UpdateSpellsFrame()
-        UI.inspTitle:SetText("Nothing selected")
+        UI.inspTitle:SetText(L.nothing_selected)
         UI.inspType:SetText("—")
         UI.inspStat:SetText("—")
         UI.inspQuality:SetText("—")
@@ -1826,14 +1865,15 @@ function UpdateInspector()
         if bought[nn.id] then marked = marked + 1 end
     end
 
-    local text = fmt("|cffffd100%d|r clusters · |cffffd100%d|r cells (%d sockets) · |cffffd100%d|r links",
-        #doc.clusters, #doc.nodes, slots, #doc.edges)
+    local gold = "|cffffd100%d|r"
+    local text = fmt(L.counts, gold:format(#doc.clusters), gold:format(#doc.nodes), slots,
+        gold:format(#doc.edges))
     local startCount = 0
     for _ in pairs(doc.starts) do startCount = startCount + 1 end
-    text = text .. (startCount > 0 and fmt(" - |cffffd100%d start(s)|r", startCount)
-        or " - |cffff5555no start set|r")
+    text = text .. " - " .. (startCount > 0 and "|cffffd100" .. fmt(L.starts, startCount) .. "|r"
+        or "|cffff5555" .. L.no_start .. "|r")
     if marked > 0 then
-        text = text .. fmt(" - |cff33e0f5%d bought|r", marked)
+        text = text .. " - |cff33e0f5" .. fmt(L.bought, marked) .. "|r"
     end
     UI.counts:SetText(text)
 end
@@ -1866,7 +1906,7 @@ local function SetZoom(z)
     zoom = max(RC.ZOOM_MIN, min(RC.ZOOM_MAX, z))
     UI.canvas:SetScale(zoom)
     ClampScroll()
-    UI.zoomLabel:SetText(fmt("Zoom %d%%", floor(zoom * 100 + 0.5)))
+    UI.zoomLabel:SetText(fmt(L.zoom, floor(zoom * 100 + 0.5)))
     -- Positions in canvas pixels do not move with the zoom: filtering is enough.
     Cull()
 end
@@ -1916,7 +1956,7 @@ local function BuildUI()
     hBackground:SetTexture(0.12, 0.12, 0.12, 1)
     local title = header:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("LEFT", 12, 0)
-    title:SetText("Sphere grid - layout editor")
+    title:SetText(L.title)
     title:SetTextColor(1, 0.82, 0)
     local close = CreateFrame("Button", nil, header, "UIPanelCloseButton")
     close:SetPoint("RIGHT", -4, 0)
@@ -1952,12 +1992,12 @@ local function BuildUI()
         return v
     end
 
-    section("TOOLS")
+    section(L.tools)
     local tools = {
-        { "select",  "Select" },
-        { "cluster", "Cluster" },
-        { "link",    "Lier" },
-        { "preview", "Preview" },
+        { "select",  L.tool_select },
+        { "cluster", L.tool_cluster },
+        { "link",    L.tool_link },
+        { "preview", L.tool_preview },
     }
     for _, t in ipairs(tools) do
         local key, label = t[1], t[2]
@@ -1968,17 +2008,17 @@ local function BuildUI()
     end
 
     y = y - 8
-    section("SELECTION")
+    section(L.selection)
     UI.inspTitle = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     UI.inspTitle:SetPoint("TOPLEFT", 10, y)
-    UI.inspTitle:SetText("Nothing selected")
+    UI.inspTitle:SetText(L.nothing_selected)
     y = y - 20
 
-    UI.inspType = row("Type")
+    UI.inspType = row(L.type)
     y = y - 16
-    UI.inspStat = row("Stat")
+    UI.inspStat = row(L.stat)
     y = y - 16
-    UI.inspQuality = row("Quality")
+    UI.inspQuality = row(L.quality)
     y = y - 20
 
     local function cycleNode(field, delta, maxv)
@@ -1990,18 +2030,18 @@ local function BuildUI()
         Rebuild()
     end
 
-    local bType = MakeButton(panel, "Node / Socket / Spell", RC.PANEL_W - 20, 20, function()
+    local bType = MakeButton(panel, L.kind_cycle, RC.PANEL_W - 20, 20, function()
         local n = selNode and NodeById(selNode)
         if not n then return end
         if n.kind == RC.KIND_NODE then
             MakeSlot(n)
-            SetStatus(fmt("Cell %d turned into a socket: its stone was removed.", n.id))
+            SetStatus(fmt(L.to_socket, n.id))
         elseif n.kind == RC.KIND_SLOT then
             MakeSpell(n)
-            SetStatus(fmt("Cell %d turned into a spell cell - type the spell identifier.", n.id))
+            SetStatus(fmt(L.to_spell, n.id))
         else
             MakeNode(n)
-            SetStatus(fmt("Cell %d turned back into a node, with a stone drawn at random.", n.id))
+            SetStatus(fmt(L.to_node, n.id))
         end
         Rebuild()
     end)
@@ -2009,16 +2049,16 @@ local function BuildUI()
     y = y - 23
 
     -- An empty node: toggles the pre-filled stone on and off.
-    local bStone = MakeButton(panel, "Stone: put in / take out", RC.PANEL_W - 20, 20, function()
+    local bStone = MakeButton(panel, L.stone_toggle, RC.PANEL_W - 20, 20, function()
         local n = selNode and NodeById(selNode)
         if not n or n.kind ~= RC.KIND_NODE then return end
         if n.stat then
             n.stat, n.quality = nil, nil
-            SetStatus(fmt("Cell %d: an empty node, with no stone laid in.", n.id))
+            SetStatus(fmt(L.stone_out, n.id))
         else
             n.stat    = random(#session.stats)
             n.quality = random(#session.qualities)
-            SetStatus(fmt("Cell %d: a stone laid in, drawn at random.", n.id))
+            SetStatus(fmt(L.stone_in, n.id))
         end
         Rebuild()
     end)
@@ -2028,7 +2068,7 @@ local function BuildUI()
     -- The identifier of a spell cell's own spell.
     local spellLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     spellLabel:SetPoint("TOPLEFT", 10, y - 4)
-    spellLabel:SetText("Fallback no.")
+    spellLabel:SetText(L.fallback_label)
     local spellBox = CreateFrame("EditBox", nil, panel)
     spellBox:SetPoint("TOPLEFT", 74, y)
     spellBox:SetWidth(70)
@@ -2044,17 +2084,17 @@ local function BuildUI()
         local n = selNode and NodeById(selNode)
         if n and n.kind == RC.KIND_SPELL then
             n.spell = tonumber(self:GetText()) or 0
-            SetStatus(fmt("Cell %d: spell no. %d.", n.id, n.spell))
+            SetStatus(fmt(L.spell_set, n.id, n.spell))
             Rebuild()
         end
         self:ClearFocus()
     end)
     UI.spellBox = spellBox
     -- The ten spells, one per class: the window made for it.
-    local bSpells = MakeButton(panel, "By class…", RC.PANEL_W - 160, 20, function()
+    local bSpells = MakeButton(panel, L.by_class, RC.PANEL_W - 160, 20, function()
         local n = selNode and NodeById(selNode)
         if not n or n.kind ~= RC.KIND_SPELL then
-            SetStatus("Select a spell cell first.")
+            SetStatus(L.select_spell_first)
             return
         end
         if UI.spellsFrame and UI.spellsFrame:IsShown() then UI.spellsFrame:Hide() else OpenSpellsFrame() end
@@ -2062,19 +2102,19 @@ local function BuildUI()
     bSpells:SetPoint("TOPLEFT", 150, y)
     y = y - 23
 
-    local bs1 = MakeButton(panel, "< Stat", 88, 20, function() cycleNode("stat", -1, #session.stats) end)
+    local bs1 = MakeButton(panel, L.stat_prev, 88, 20, function() cycleNode("stat", -1, #session.stats) end)
     bs1:SetPoint("TOPLEFT", 10, y)
-    local bs2 = MakeButton(panel, "Stat >", 88, 20, function() cycleNode("stat", 1, #session.stats) end)
+    local bs2 = MakeButton(panel, L.stat_next, 88, 20, function() cycleNode("stat", 1, #session.stats) end)
     bs2:SetPoint("TOPLEFT", 108, y)
     y = y - 23
 
-    local bq1 = MakeButton(panel, "< Quality", 88, 20, function() cycleNode("quality", -1, #session.qualities) end)
+    local bq1 = MakeButton(panel, L.quality_prev, 88, 20, function() cycleNode("quality", -1, #session.qualities) end)
     bq1:SetPoint("TOPLEFT", 10, y)
-    local bq2 = MakeButton(panel, "Quality >", 88, 20, function() cycleNode("quality", 1, #session.qualities) end)
+    local bq2 = MakeButton(panel, L.quality_next, 88, 20, function() cycleNode("quality", 1, #session.qualities) end)
     bq2:SetPoint("TOPLEFT", 108, y)
     y = y - 23
 
-    local bRand = MakeButton(panel, "Tirer au hasard", RC.PANEL_W - 20, 20, function()
+    local bRand = MakeButton(panel, L.random, RC.PANEL_W - 20, 20, function()
         local n = selNode and NodeById(selNode)
         if not n then return end
         RandomContent(n)
@@ -2083,12 +2123,12 @@ local function BuildUI()
     bRand:SetPoint("TOPLEFT", 10, y)
     y = y - 23
 
-    local bDelNode = MakeButton(panel, "Remove the cell", RC.PANEL_W - 20, 20, function()
+    local bDelNode = MakeButton(panel, L.remove_cell, RC.PANEL_W - 20, 20, function()
         local n = selNode and NodeById(selNode)
         if not n then return end
         local id = n.id
         RemoveNode(id)
-        SetStatus(fmt("Cell %d removed. Its place remains: click it to put the cell back.", id))
+        SetStatus(fmt(L.cell_removed, id))
         Rebuild()
     end)
     bDelNode:SetPoint("TOPLEFT", 10, y)
@@ -2100,7 +2140,7 @@ local function BuildUI()
     local bClass = MakeButton(panel, "", RC.PANEL_W - 20, 20, function() end)
     bClass:SetPoint("TOPLEFT", 10, y)
     local function UpdateClass()
-        bClass.label:SetText("Start: " .. CLASSES[startClass][2])
+        bClass.label:SetText(fmt(L.start, ClassName(CLASSES[startClass][1])))
     end
     bClass:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     bClass:SetScript("OnClick", function(_, button)
@@ -2114,45 +2154,45 @@ local function BuildUI()
     UpdateClass()
     y = y - 23
 
-    local bStart = MakeButton(panel, "Set as start", RC.PANEL_W - 20, 20, function()
+    local bStart = MakeButton(panel, L.set_start, RC.PANEL_W - 20, 20, function()
         local n = selNode and NodeById(selNode)
         if not n then return end
         local class = CLASSES[startClass][1]
         if doc.starts[class] == n.id then
             doc.starts[class] = nil
-            SetStatus(fmt("Cell %d is no longer the start (%s).", n.id, ClassName(class)))
+            SetStatus(fmt(L.start_removed, n.id, ClassName(class)))
         else
             doc.starts[class] = n.id
-            SetStatus(fmt("Cell %d set as the start (%s).", n.id, ClassName(class)))
+            SetStatus(fmt(L.start_set, n.id, ClassName(class)))
         end
         Rebuild()
     end)
     bStart:SetPoint("TOPLEFT", 10, y)
     y = y - 28
 
-    section("SELECTED CLUSTER")
+    section(L.selected_cluster)
     local function rotate(delta)
         local c = selCluster and ClusterById(selCluster)
         if not c then return end
         c.rot = (c.rot or 0) + delta
         Rebuild()
     end
-    local br1 = MakeButton(panel, "< Rotation", 88, 20, function() rotate(-pi / 16) end)
+    local br1 = MakeButton(panel, L.rotation_prev, 88, 20, function() rotate(-pi / 16) end)
     br1:SetPoint("TOPLEFT", 10, y)
-    local br2 = MakeButton(panel, "Rotation >", 88, 20, function() rotate(pi / 16) end)
+    local br2 = MakeButton(panel, L.rotation_next, 88, 20, function() rotate(pi / 16) end)
     br2:SetPoint("TOPLEFT", 108, y)
     y = y - 23
 
-    local bDel = MakeButton(panel, "Delete the cluster", RC.PANEL_W - 20, 20, function()
+    local bDel = MakeButton(panel, L.delete_cluster, RC.PANEL_W - 20, 20, function()
         if not selCluster then return end
         RemoveCluster(selCluster)
-        SetStatus("Cluster deleted.")
+        SetStatus(L.cluster_deleted)
         Rebuild()
     end)
     bDel:SetPoint("TOPLEFT", 10, y)
     y = y - 28
 
-    section("FILE")
+    section(L.file)
     local nameBox = CreateFrame("EditBox", nil, panel)
     nameBox:SetPoint("TOPLEFT", 10, y)
     nameBox:SetWidth(RC.PANEL_W - 20)
@@ -2168,28 +2208,28 @@ local function BuildUI()
     UI.nameBox = nameBox
     y = y - 24
 
-    local bSave = MakeButton(panel, "Enregistrer", 88, 20, function()
+    local bSave = MakeButton(panel, L.save, 88, 20, function()
         AIO.Handle("SphereGridEditor", "Save", nameBox:GetText(), doc.clusters, doc.nodes, doc.edges, doc.starts)
     end)
     bSave:SetPoint("TOPLEFT", 10, y)
-    local bLoad = MakeButton(panel, "Charger", 88, 20, function()
+    local bLoad = MakeButton(panel, L.load, 88, 20, function()
         AIO.Handle("SphereGridEditor", "Load", nameBox:GetText())
     end)
     bLoad:SetPoint("TOPLEFT", 108, y)
     y = y - 23
 
-    local bCheck = MakeButton(panel, "Verify", 88, 20, function()
+    local bCheck = MakeButton(panel, L.verify, 88, 20, function()
         AIO.Handle("SphereGridEditor", "Verify", doc.clusters, doc.nodes, doc.edges, doc.starts)
     end)
     bCheck:SetPoint("TOPLEFT", 10, y)
-    local bNew = MakeButton(panel, "Vider", 88, 20, function()
+    local bNew = MakeButton(panel, L.clear, 88, 20, function()
         doc.clusters, doc.nodes, doc.edges = {}, {}, {}
         doc.nextCluster, doc.nextNode = 1, 1
         doc.starts = {}
         selNode, selCluster, linkPending = nil, nil, nil
         bought = {}
         offenders = {}
-        SetStatus("Layout cleared.")
+        SetStatus(L.layout_cleared)
         Rebuild()
     end)
     bNew:SetPoint("TOPLEFT", 108, y)
@@ -2242,7 +2282,7 @@ local function BuildUI()
             gy = floor(gy / RC.SNAP + 0.5) * RC.SNAP
             local c = AddCluster(gx, gy)
             selCluster, selNode = c.id, nil
-            SetStatus(fmt("Cluster %d laid down at %.2f, %.2f.", c.id, gx, gy))
+            SetStatus(fmt(L.cluster_laid, c.id, ("%.2f"):format(gx), ("%.2f"):format(gy)))
             Rebuild()
         end
     end)
@@ -2260,7 +2300,7 @@ local function BuildUI()
                 if dt > (UI.worstFrame or 0) then UI.worstFrame = dt end
                 if t - (UI.sinceFrame or 0) > 0.5 then
                     if UI.imageLabel then
-                        UI.imageLabel:SetText(fmt("image %.0f ms", UI.worstFrame or 0))
+                        UI.imageLabel:SetText(fmt(L.image_ms, ("%.0f"):format(UI.worstFrame or 0)))
                     end
                     UI.worstFrame, UI.sinceFrame = 0, t
                 end
@@ -2274,7 +2314,7 @@ local function BuildUI()
             if not IsMouseButtonDown("LeftButton") then
                 local id = UI.dragCluster
                 UI.dragCluster = nil
-                SetStatus(fmt("Cluster %d put down.", id))
+                SetStatus(fmt(L.cluster_put, id))
                 Rebuild()
                 return
             end
@@ -2335,12 +2375,12 @@ local function BuildUI()
     -- What the filter costs, so it can be measured rather than assumed.
     UI.perfLabel = footer:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     UI.perfLabel:SetPoint("RIGHT", UI.zoomLabel, "LEFT", -12, 0)
-    UI.perfLabel:SetText("filter –")
+    UI.perfLabel:SetText(L.filter_none)
     UI.imageLabel = footer:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     UI.imageLabel:SetPoint("RIGHT", UI.perfLabel, "LEFT", -12, 0)
-    UI.imageLabel:SetText("image –")
+    UI.imageLabel:SetText(L.image_none)
 
-    local bFit = MakeButton(footer, "Recentrer", 86, 20, function()
+    local bFit = MakeButton(footer, L.recentre, 86, 20, function()
         SetZoom(1)
         Centre()
         Rebuild()
@@ -2350,11 +2390,11 @@ local function BuildUI()
     -- The filter's switch. "Filter: on" draws only the window and dresses the rest
     -- in the background; "off" draws and dresses everything at once on rebuild.
     -- It is there to compare the two by eye.
-    local bFilter = MakeButton(footer, "Filtre : oui", 86, 20, function() end)
+    local bFilter = MakeButton(footer, L.filter_on, 86, 20, function() end)
     bFilter:SetPoint("RIGHT", bFit, "LEFT", -6, 0)
     bFilter:SetScript("OnClick", function(self)
         UI.noFilter = not UI.noFilter
-        self.label:SetText(UI.noFilter and "Filtre : non" or "Filtre : oui")
+        self.label:SetText(UI.noFilter and L.filter_off or L.filter_on)
         Rebuild()
     end)
 
@@ -2382,15 +2422,18 @@ function EditorHandlers.ReceiveSession(_, geometry, stats, qualities, slotIcon, 
 
     EnsureUI()
     UI.layoutList:SetText(#session.layouts > 0
-        and ("In store: " .. table.concat(session.layouts, ", "))
-        or "No layout saved.")
+        and fmt(L.in_store, table.concat(session.layouts, ", "))
+        or L.no_layout)
     UI:Show()
     SetZoom(1)
     Rebuild()
-    SetStatus("Take the Cluster tool, then click the background to lay a first one down.")
+    SetStatus(L.first_hint)
 end
 
-function EditorHandlers.OpenEditor(_)
+-- The texts of this window, in the language of the player's client, come with
+-- the opening: they are in place before anything is built or shown.
+function EditorHandlers.OpenEditor(_, texts)
+    if type(texts) == "table" then TEXTS = texts end
     EnsureUI()
     if UI:IsShown() then
         UI:Hide()
@@ -2403,19 +2446,19 @@ function EditorHandlers.ReceiveLayoutList(_, layouts)
     session.layouts = layouts or {}
     if UI then
         UI.layoutList:SetText(#session.layouts > 0
-            and ("In store: " .. table.concat(session.layouts, ", "))
-            or "No layout saved.")
+            and fmt(L.in_store, table.concat(session.layouts, ", "))
+            or L.no_layout)
     end
 end
 
 local function ReportText(r)
     if not r then return "" end
-    local head = fmt("%d clusters - %d cells (%d sockets) - %d links - min gap %.3f u - %d piece(s)",
-        r.clusters or 0, r.nodes or 0, r.slots or 0, r.edges or 0, r.minSeparation or 0, r.groups or 0)
+    local head = fmt(L.report, r.clusters or 0, r.nodes or 0, r.slots or 0, r.edges or 0,
+        ("%.3f"):format(r.minSeparation or 0), r.groups or 0)
     if r.problems and #r.problems > 0 then
         return head .. "  |cffff5555>> " .. table.concat(r.problems, " ; ") .. "|r"
     end
-    return head .. "  |cff55ff55>> no fault|r"
+    return head .. "  |cff55ff55>> " .. L.no_fault .. "|r"
 end
 
 -- The report carries a LIST of identifiers, while the drawing asks by
@@ -2474,7 +2517,7 @@ function EditorHandlers.ReceiveLayout(_, clusters, nodes, edges, name, report, s
     Rebuild()
     Centre()
     Cull(true)
-    SetStatus(fmt("\"%s\" loaded.  ", name or "?") .. ReportText(report), report and not report.ok)
+    SetStatus(fmt(L.loaded, name or "?") .. "  " .. ReportText(report), report and not report.ok)
 end
 
 -- /spheregrid belongs to the player interface (player/Player_Client.lua).

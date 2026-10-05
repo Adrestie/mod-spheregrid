@@ -197,13 +197,20 @@ built-in table. `.spheregrid reload` picks up a change.
 
 ## Add a language
 
-Every message lives in `module_string`, and every language other than English
-in `module_string_locale` (`data/sql/world/spheregrid_02_strings.sql`). Add your rows with
-your locale, replay the file, restart the world.
+The module comes in English, French, German, Spanish (`esES`) and Russian;
+other clients get English.
 
-The items and the spells carry their own texts: `item_template_locale` and the
-`_Lang_*` columns of `spell_dbc`. Mind the trap the SQL warns about — the column
-called `_Lang_koKR` is the one the client reads as French.
+Every text lives in `module_string`, and every language other than English
+in `module_string_locale` (`data/sql/world/spheregrid_02_strings.sql`): the
+messages, and the windows' texts too (the player's window, the workbench
+recipes, the editor), which the server sends them in the player's language
+(`data/lua/SphereGrid/Texts.ext`). Add your rows with your locale, replay the
+file, restart the world.
+
+The items and the spells carry their own texts: `item_template_locale`, the
+`_Lang_*` columns of `spell_dbc`, and the client's `data/dbc/spheregrid_Spell.dbc`.
+Mind the trap the SQL warns about — the column called `_Lang_koKR` is the one
+the client reads as French.
 
 ## Update the module
 

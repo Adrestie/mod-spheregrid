@@ -65,25 +65,26 @@ local SEP_MIN = 0.70            -- the smallest gap tolerated between two cells
 -- ---------------------------------------------------------------------------
 -- The catalogue
 -- ---------------------------------------------------------------------------
--- The key is what gets written into the XML; it must never change.
+-- The key is what gets written into the XML; it must never change. The names of
+-- the statistics and qualities are the player window's texts (Named, below).
 
 local STATS = {
-    { key = "stamina",          label = "Stamina",            cat = 1, icon = "Interface\\Icons\\Spell_Holy_WordFortitude" },
-    { key = "intellect",       label = "Intellect",         cat = 1, icon = "Interface\\Icons\\Spell_Holy_MagicalSentry" },
-    { key = "spirit",             label = "Spirit",               cat = 1, icon = "Interface\\Icons\\Spell_Shadow_Charm" },
-    { key = "agility",          label = "Agility",            cat = 1, icon = "Interface\\Icons\\Spell_Holy_BlessingOfAgility" },
-    { key = "strength",              label = "Strength",                cat = 1, icon = "Interface\\Icons\\Spell_Nature_Strength" },
-    { key = "parry",             label = "Parry",               cat = 2, icon = "Interface\\Icons\\Ability_Parry" },
-    { key = "block",            label = "Block",              cat = 2, icon = "Interface\\Icons\\Ability_Warrior_ShieldWall" },
-    { key = "dodge",            label = "Dodge",              cat = 2, icon = "Interface\\Icons\\Spell_Magic_LesserInvisibilty" },
-    { key = "haste",               label = "Haste",                 cat = 2, icon = "Interface\\Icons\\Spell_Nature_BloodLust" },
-    { key = "crit",           label = "Critical strike",             cat = 2, icon = "Interface\\Icons\\Ability_CriticalStrike" },
-    { key = "hit",             label = "Hit",               cat = 2, icon = "Interface\\Icons\\Ability_Hunter_SniperShot" },
-    { key = "spell_power",    label = "Spell power",  cat = 2, icon = "Interface\\Icons\\Spell_Fire_FlameBolt" },
-    { key = "attack_power",  label = "Attack power",  cat = 2, icon = "Interface\\Icons\\INV_Sword_04" },
-    { key = "armor_penetration", label = "Armor penetration", cat = 2, icon = "Interface\\Icons\\Ability_Rogue_Ambush" },
-    { key = "expertise",          label = "Expertise",            cat = 2, icon = "Interface\\Icons\\Ability_Warrior_WeaponMastery" },
-    { key = "bonus_healing",        label = "Healing bonus",      cat = 2, icon = "Interface\\Icons\\Spell_Holy_HolyBolt" },
+    { key = "stamina",          cat = 1, icon = "Interface\\Icons\\Spell_Holy_WordFortitude" },
+    { key = "intellect",       cat = 1, icon = "Interface\\Icons\\Spell_Holy_MagicalSentry" },
+    { key = "spirit",             cat = 1, icon = "Interface\\Icons\\Spell_Shadow_Charm" },
+    { key = "agility",          cat = 1, icon = "Interface\\Icons\\Spell_Holy_BlessingOfAgility" },
+    { key = "strength",              cat = 1, icon = "Interface\\Icons\\Spell_Nature_Strength" },
+    { key = "parry",             cat = 2, icon = "Interface\\Icons\\Ability_Parry" },
+    { key = "block",            cat = 2, icon = "Interface\\Icons\\Ability_Warrior_ShieldWall" },
+    { key = "dodge",            cat = 2, icon = "Interface\\Icons\\Spell_Magic_LesserInvisibilty" },
+    { key = "haste",               cat = 2, icon = "Interface\\Icons\\Spell_Nature_BloodLust" },
+    { key = "crit",           cat = 2, icon = "Interface\\Icons\\Ability_CriticalStrike" },
+    { key = "hit",             cat = 2, icon = "Interface\\Icons\\Ability_Hunter_SniperShot" },
+    { key = "spell_power",    cat = 2, icon = "Interface\\Icons\\Spell_Fire_FlameBolt" },
+    { key = "attack_power",  cat = 2, icon = "Interface\\Icons\\INV_Sword_04" },
+    { key = "armor_penetration", cat = 2, icon = "Interface\\Icons\\Ability_Rogue_Ambush" },
+    { key = "expertise",          cat = 2, icon = "Interface\\Icons\\Ability_Warrior_WeaponMastery" },
+    { key = "bonus_healing",        cat = 2, icon = "Interface\\Icons\\Spell_Holy_HolyBolt" },
 }
 
 -- FIVE QUALITIES, the ones the game itself uses. The bonus shown here is the
@@ -93,11 +94,11 @@ local STATS = {
 -- What is shown is a NODE's bonus (+1/+2/+3/+5/+7); a stone the player
 -- socketed grants more.
 local QUALITIES = {
-    { label = "Common",     bonus = 1 },
-    { label = "Uncommon",   bonus = 2 },
-    { label = "Rare",       bonus = 3 },
-    { label = "Epic",       bonus = 5 },
-    { label = "Legendary",  bonus = 7 },
+    { bonus = 1 },
+    { bonus = 2 },
+    { bonus = 3 },
+    { bonus = 5 },
+    { bonus = 7 },
 }
 
 -- There is no prismatic socket in the 3.3.5 client; the plain one exists. The
@@ -204,7 +205,7 @@ local function SpellFor(n, class)
     return nil
 end
 
-local function Verify(clusters, nodes, edges, start)
+local function Verify(player, clusters, nodes, edges, start)
     local starts = Starts(start)
     local byId, clusterById = {}, {}
     for _, c in ipairs(clusters) do clusterById[c.id] = c end
@@ -220,6 +221,10 @@ local function Verify(clusters, nodes, edges, start)
     end
 
     local problems = {}
+    -- A problem in the player's language: its number in the module's texts (Texts.ext).
+    local function Problem(id, ...)
+        problems[#problems + 1] = SphereGridTexts.Text(player, id, ...)
+    end
 
     -- THE OFFENDING CELLS, not just how many. A report saying "3 pieces not
     -- joined" over a grid of two hundred cells leaves the eye to hunt; the editor
@@ -233,7 +238,7 @@ local function Verify(clusters, nodes, edges, start)
     -- orphan cells
     local orphans = #nodes - #placed
     if orphans > 0 then
-        problems[#problems + 1] = fmt("%d cell(s) attached to a cluster that does not exist", orphans)
+        Problem(413, orphans)
     end
 
     -- overlap
@@ -247,8 +252,7 @@ local function Verify(clusters, nodes, edges, start)
     end
     if #placed < 2 then worst = 0 end
     if #placed >= 2 and worst < SEP_MIN then
-        problems[#problems + 1] = fmt("cells %d and %d too close (%.3f u, minimum %.2f)",
-            wa or 0, wb or 0, worst, SEP_MIN)
+        Problem(414, wa or 0, wb or 0, fmt("%.3f", worst), fmt("%.2f", SEP_MIN))
         -- Both are painted red, like any fault a cell carries.
         Offender(wa)
         Offender(wb)
@@ -279,10 +283,10 @@ local function Verify(clusters, nodes, edges, start)
         end
     end
     if dangling > 0 then
-        problems[#problems + 1] = fmt("%d link(s) pointing at a cell that does not exist", dangling)
+        Problem(415, dangling)
     end
     if dupes > 0 then
-        problems[#problems + 1] = fmt("%d duplicate link(s)", dupes)
+        Problem(416, dupes)
     end
 
     -- pieces standing apart
@@ -310,7 +314,7 @@ local function Verify(clusters, nodes, edges, start)
     end
     local groups = #pieces
     if groups > 1 then
-        problems[#problems + 1] = fmt("%d pieces not joined to one another", groups)
+        Problem(417, groups)
 
         -- THE PIECE OF REFERENCE is the one holding the start -- that one is the grid,
         -- and the others are what came away from it. With no start placed, or one
@@ -348,12 +352,12 @@ local function Verify(clusters, nodes, edges, start)
     for class, id in pairs(starts) do
         startCount = startCount + 1
         if not byId[id] then
-            problems[#problems + 1] = fmt("the start (class %d) points at cell %d, which was removed", class, id)
+            Problem(418, class, id)
             Offender(id)
         end
     end
     if startCount == 0 then
-        problems[#problems + 1] = "no start has been set"
+        Problem(419)
     end
 
     -- VISIBILITY BY CLASS: a spell cell with no spell for a class DOES NOT EXIST
@@ -370,8 +374,7 @@ local function Verify(clusters, nodes, edges, start)
                     return n and not (n.kind == 2 and not SpellFor(n, class))
                 end
                 if not visible(startId) then
-                    problems[#problems + 1] = fmt(
-                        "the start of class %d (%d) is a spell cell with no spell for it", class, startId)
+                    Problem(420, class, startId)
                     Offender(startId)
                 else
                     local seen, queue = { [startId] = true }, { startId }
@@ -389,9 +392,7 @@ local function Verify(clusters, nodes, edges, start)
                         if visible(n.id) and not seen[n.id] then lost[#lost + 1] = n.id end
                     end
                     if #lost > 0 then
-                        problems[#problems + 1] = fmt(
-                            "class %d: %d cell(s) out of reach of its start (a spell it cannot see acts as a bridge)",
-                            class, #lost)
+                        Problem(421, class, #lost)
                         for _, id in ipairs(lost) do Offender(id) end
                     end
                 end
@@ -611,16 +612,28 @@ local function IsAdmin(player)
     return player:GetGMRank() >= ADMIN_RANK
 end
 
+-- A copy of the catalogue's entries, each named in the player's language: the
+-- text numbered first for the first entry, and so on.
+local function Named(player, list, first)
+    local out = {}
+    for i, entry in ipairs(list) do
+        local copy = { label = SphereGridTexts.Text(player, first + i - 1) }
+        for k, v in pairs(entry) do copy[k] = v end
+        out[i] = copy
+    end
+    return out
+end
+
 function EditorHandlers.RequestSession(player)
     if not IsAdmin(player) then return end
     AIO.Handle(player, "SphereGridEditor", "ReceiveSession",
-        GEOMETRY, STATS, QUALITIES, SLOT_ICON, ReadIndex(), SEP_MIN)
+        GEOMETRY, Named(player, STATS, 181), Named(player, QUALITIES, 197), SLOT_ICON, ReadIndex(), SEP_MIN)
 end
 
 function EditorHandlers.Verify(player, clusters, nodes, edges, start)
     if not IsAdmin(player) then return end
     AIO.Handle(player, "SphereGridEditor", "ReceiveReport",
-        Verify(clusters or {}, nodes or {}, edges or {}, start), nil)
+        Verify(player, clusters or {}, nodes or {}, edges or {}, start), nil)
 end
 
 function EditorHandlers.Save(player, name, clusters, nodes, edges, start)
@@ -628,11 +641,11 @@ function EditorHandlers.Save(player, name, clusters, nodes, edges, start)
     name = SafeName(name)
     clusters, nodes, edges = clusters or {}, nodes or {}, edges or {}
 
-    local report = Verify(clusters, nodes, edges, start)
+    local report = Verify(player, clusters, nodes, edges, start)
     local path, err = WriteXML(name, clusters, nodes, edges, start)
 
     if not path then
-        report.problems[#report.problems + 1] = "could not be written: " .. tostring(err)
+        report.problems[#report.problems + 1] = SphereGridTexts.Text(player, 422, tostring(err))
         report.ok = false
         AIO.Handle(player, "SphereGridEditor", "ReceiveReport", report, nil)
         return
@@ -640,7 +653,7 @@ function EditorHandlers.Save(player, name, clusters, nodes, edges, start)
 
     AddToIndex(name)
     AIO.Handle(player, "SphereGridEditor", "ReceiveReport", report,
-        fmt("Layout \"%s\" saved (%d cells).", name, #nodes))
+        SphereGridTexts.Text(player, 423, name, #nodes))
     AIO.Handle(player, "SphereGridEditor", "ReceiveLayoutList", ReadIndex())
 end
 
@@ -655,7 +668,7 @@ function EditorHandlers.Load(player, name)
         return
     end
 
-    local report = Verify(data.clusters, data.nodes, data.edges, data.start)
+    local report = Verify(player, data.clusters, data.nodes, data.edges, data.start)
     AIO.Handle(player, "SphereGridEditor", "ReceiveLayout",
         data.clusters, data.nodes, data.edges, name, report, data.start)
 end
@@ -672,27 +685,18 @@ end
 -- command, whose root prints the list of subcommands.
 -- .spheregrid show belongs to the player interface (player/Player.lua).
 
--- Messages follow the client's language: English by default, French for frFR --
--- the same rule as the module's own module_string entries.
-local LOCALE_FRFR = 2               -- LocaleConstant frFR
-
-local MESSAGES = {
-    editor_open  = { "[Sphere grid] Editor opened.",
-                        "[Sphèrier] Éditeur ouvert." },
-    editor_taken = { "[Sphere grid] The editor is restricted to administrators.",
-                        "[Sphèrier] L'éditeur est réservé aux administrateurs." },
-}
+-- The messages of this script, by their number in the module's texts
+-- (Texts.ext), in the client's language.
+local MESSAGES = { editor_open = 221, editor_taken = 222 }
 
 local function Say(player, key)
-    local m = MESSAGES[key]
-    player:SendBroadcastMessage(player:GetDbLocaleIndex() == LOCALE_FRFR and m[2] or m[1])
+    player:SendBroadcastMessage(SphereGridTexts.Text(player, MESSAGES[key]))
 end
 
 -- An error, or something that cannot be done: the standard red text in the
 -- middle of the screen, as the game does for its own refusals.
 local function SayError(player, key)
-    local m = MESSAGES[key]
-    player:SendNotification(player:GetDbLocaleIndex() == LOCALE_FRFR and m[2] or m[1])
+    player:SendNotification(SphereGridTexts.Text(player, MESSAGES[key]))
 end
 
 local function OnCommand(_, player, command)
@@ -703,7 +707,7 @@ local function OnCommand(_, player, command)
 
     if cmd:match("^spheregrid%s+editor%s*$") then
         if IsAdmin(player) then
-            AIO.Handle(player, "SphereGridEditor", "OpenEditor")
+            AIO.Handle(player, "SphereGridEditor", "OpenEditor", SphereGridTexts.For(player, 301, 499))
             Say(player, "editor_open")
         else
             SayError(player, "editor_taken")
