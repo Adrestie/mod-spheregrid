@@ -316,13 +316,17 @@ EXTRA_FILES = (
     "Textures\\SpellChainEffects\\8fx_jaina_glacialraybeam.blp",
 )
 
-# WHAT IS THE MODULE'S OWN, and must not be taken from a client. One texture:
-# the fully transparent square a particle emitter of Light of Dawn draws over
-# its flare. Every client that ran the module kept it palettized and without a
-# mipmap chain, which a particle emitter renders as GREEN SQUARES; the module
-# carries its own, in data/art, and a collection leaves it where it is.
+# WHAT IS THE MODULE'S OWN, and must not be taken from a client. Two textures.
+# The fully transparent square a particle emitter of Light of Dawn draws over
+# its flare: every client that ran the module kept it palettized and without a
+# mipmap chain, which a particle emitter renders as GREEN SQUARES. And the
+# sheet the cells' rim comes from, 2048 x 2048 in the source, which overflows
+# a stock Wow.exe: the module ships it halved and cut to its top half,
+# 1024 x 512 (RC.FRAME_COORDS follows). The module carries both, in data/art,
+# and a collection leaves them where they are.
 MODULE_OWN = (
     "spells\\spheregrid_vide.blp",
+    "Interface\\Journeys\\JourneysFrame2x.blp",
 )
 
 

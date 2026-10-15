@@ -157,7 +157,7 @@ RC.ARC_TEXTURES = { RC.ART_DIR .. "arc1", RC.ART_DIR .. "arc2", RC.ART_DIR .. "a
 -- RGB(113,99,71), inner radius at 0.636 of the half-side: at 44px it bites 3px
 -- into an icon of 34.
 RC.FRAME_SHEET  = "Interface\\Journeys\\JourneysFrame2x"
-RC.FRAME_COORDS = { 0.762207, 0.814941, 0.124512, 0.177246 }
+RC.FRAME_COORDS = { 0.762207, 0.814941, 0.249023, 0.354492 }
 RC.FRAME_SIZE   = 44
 RC.ARC_TEX_W, RC.ARC_TEX_H = 256, 128
 RC.ARC_CHORD_U0, RC.ARC_CHORD_V, RC.ARC_CHORD_TEXELS = 8, 100, 240

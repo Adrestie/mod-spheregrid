@@ -186,6 +186,11 @@ The version is the first word of the newest heading.
   leaves the module half posed; AzerothCore does not give the same width to
   columns holding the same kind of text, so a text that fits everywhere else
   can still be refused.
+- The sphere grid no longer crashes a stock `Wow.exe` (ERROR #132): the sheet
+  the cells' rim comes from, `JourneysFrame2x.blp`, was 2048 x 2048 and
+  overflowed the client's texture buffer. It is now 1024 x 512 (halved, top
+  half kept, 16 MB down to 2 MB), uncompressed BLP2 with its alpha;
+  `RC.FRAME_COORDS` follows, and the collector leaves the sheet as it is.
 
 ## 0.1.0
 

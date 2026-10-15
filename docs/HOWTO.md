@@ -257,13 +257,17 @@ The same thing, seen from the purchase: the module has not read your new links.
 
 ### The game crashes when the sphere grid opens (ERROR #132 at 0x40CB6A)
 
-Known, not fixed yet. `data/art/Interface/Journeys/JourneysFrame2x.blp`, the rim
-of the cells' icons (`RC.FRAME_SHEET`), is an uncompressed 2048 x 2048 image. A
+Fixed in 0.2.0. `data/art/Interface/Journeys/JourneysFrame2x.blp`, the rim of
+the cells' icons (`RC.FRAME_SHEET`), was an uncompressed 2048 x 2048 image. A
 stock `Wow.exe` decodes every texture into one buffer sized for 1024 x 1024 at
-32 bits: this one overflows it and the game quits. Only clients that load
+32 bits: that one overflowed it and the game quit. Only clients that load
 `WarcraftXL.dll` (HD packs) widen that buffer; players must not be assumed to
-have it. The fix is to halve the sheet to 1024 x 1024: `RC.FRAME_COORDS` is
-relative, the Lua needs no change.
+have it. The sheet is now halved and cut to its top half, where the rim is:
+1024 x 512, still uncompressed BLP2 with its alpha, and `RC.FRAME_COORDS`
+points at the rim there. A client that still crashes holds the old sheet in
+its `patch-Z.MPQ`: install the module again so the new one replaces it.
+`tools/collect_client.py` counts the sheet as the module's own and leaves it
+alone.
 
 ### A Lua error whose line matches nothing
 
