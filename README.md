@@ -98,9 +98,13 @@ object 810000 and its spawns. Layouts the in-game editor saved in
 `lua_scripts/SphereGrid/editor/layouts` are yours: they stay, and so does the
 folder that holds them. Then rebuild the core.
 
-To update the module, remove it, then install it again. The removal takes what
-players earned with it: to keep it, save the four `mod_spheregrid_*` tables of
-the characters database before, and put them back after.
+To update the module, run the installer on the new version's folder and
+choose **Update**. It removes the installed version and installs the new one,
+but keeps what players earned and bought (the four `mod_spheregrid_*` tables
+of the characters database), the spells they learned and their action bars,
+the creatures and objects you placed, and your `mod-spheregrid.conf`, whose
+settings the new one takes over. The grid itself (the world tables) comes
+from the new version's SQL, applied on the next start.
 
 ### By hand
 
