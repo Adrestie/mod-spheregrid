@@ -4,6 +4,10 @@ The version is the first word of the newest heading.
 
 ## 0.2.0 (unreleased)
 
+- Impalement bleeds for 120 + 0.09 x attack power per second. Its bleed
+  had kept the placeholder 0.1234 through the balancing, and over twelve
+  seconds outweighed the strike three times over. Server (`spell_bonus_data`),
+  tooltips and the client's `Spell.dbc` row agree.
 - Installed and removed by the WoW-mods installer, from `installer.json`. The
   module's own installer, remover and identifier shift are gone (`install.bat`,
   `install.sh`, `tools/install.py`, `tools/uninstall.py`, `tools/shift.py`). The
