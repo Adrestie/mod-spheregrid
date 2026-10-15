@@ -60,13 +60,13 @@ local AIO = require("AIO")
 local fmt = string.format
 
 Workbench = Workbench or {}
-Workbench.VERSION = 2
+Workbench.VERSION = 4
 
 -- The object in the world: one template, shipped by every module that uses
 -- the bench (inserted only when absent), placed by hand with `.gobject add`.
 local WORKBENCH_ENTRY = 810000
 local GAMEOBJECT_EVENT_ON_USE = 14
-local LOCALE_FRFR = 2
+local LOCALES = { [0] = "enUS", "koKR", "frFR", "deDE", "zhCN", "zhTW", "esES", "esMX", "ruRU" }
 
 local Handlers = AIO.AddHandlers("Workbench", {})
 
@@ -74,26 +74,62 @@ local Handlers = AIO.AddHandlers("Workbench", {})
 -- Texts, by the player's language
 -- ---------------------------------------------------------------------------
 
+-- One table per language; a key missing from one falls back to English. esMX
+-- reads the Spanish of Spain.
 local MESSAGES = {
-    not_carried = { "You do not carry that item.", "Vous ne portez pas cet objet." },
-    nobody      = { "Nothing on this workbench takes that item.",
-                    "Rien sur cet établi n'accepte cet objet." },
-    locked      = { "That item belongs to another craft than what is already on the bench.",
-                    "Cet objet relève d'un autre artisanat que ce qui est déjà sur l'établi." },
-    no_recipe   = { "The bench cannot make that with what is on it.",
-                    "L'établi ne peut pas faire cela avec ce qui est posé." },
-    no_fit      = { "That item does not go with what is on the bench.",
-                    "Cet objet ne va pas avec ce qui est sur l'établi." },
+    enUS = {
+        not_carried = "You do not carry that item.",
+        nobody      = "Nothing on this workbench takes that item.",
+        locked      = "That item belongs to another craft than what is already on the bench.",
+        no_recipe   = "The bench cannot make that with what is on it.",
+        no_fit      = "That item does not go with what is on the bench.",
+    },
+    frFR = {
+        not_carried = "Vous ne portez pas cet objet.",
+        nobody      = "Rien sur cet établi n'accepte cet objet.",
+        locked      = "Cet objet relève d'un autre artisanat que ce qui est déjà sur l'établi.",
+        no_recipe   = "L'établi ne peut pas faire cela avec ce qui est posé.",
+        no_fit      = "Cet objet ne va pas avec ce qui est sur l'établi.",
+    },
+    deDE = {
+        not_carried = "Ihr tragt diesen Gegenstand nicht bei Euch.",
+        nobody      = "Nichts auf dieser Werkbank nimmt diesen Gegenstand an.",
+        locked      = "Dieser Gegenstand gehört zu einem anderen Handwerk als dem, was schon auf der Werkbank liegt.",
+        no_recipe   = "Mit dem, was aufliegt, kann die Werkbank das nicht herstellen.",
+        no_fit      = "Dieser Gegenstand passt nicht zu dem, was auf der Werkbank liegt.",
+    },
+    esES = {
+        not_carried = "No llevas ese objeto.",
+        nobody      = "Nada en este banco de trabajo acepta ese objeto.",
+        locked      = "Ese objeto pertenece a otra artesanía distinta de lo que ya está en el banco.",
+        no_recipe   = "El banco no puede fabricar eso con lo que tiene encima.",
+        no_fit      = "Ese objeto no combina con lo que está en el banco.",
+    },
+    ruRU = {
+        not_carried = "У вас нет этого предмета.",
+        nobody      = "Ничто на этом верстаке не принимает этот предмет.",
+        locked      = "Этот предмет относится к другому ремеслу, чем то, что уже лежит на верстаке.",
+        no_recipe   = "Верстак не может создать это из того, что на нём лежит.",
+        no_fit      = "Этот предмет не сочетается с тем, что лежит на верстаке.",
+    },
 }
+MESSAGES.esMX = MESSAGES.esES
 
-local function Say(player, key)
-    local m = MESSAGES[key]
-    player:SendNotification(player:GetDbLocaleIndex() == LOCALE_FRFR and m[2] or m[1])
+local function LocaleOf(player)
+    return LOCALES[player:GetDbLocaleIndex()] or "enUS"
 end
 
+local function Say(player, key)
+    local own = MESSAGES[LocaleOf(player)] or MESSAGES.enUS
+    player:SendNotification(own[key] or MESSAGES.enUS[key])
+end
+
+-- A provider's name is a string, or a table by language ({ enUS = ..., deDE = ... });
+-- Spanish of Mexico takes the Spanish of Spain when it has none of its own.
 local function Localized(name, player)
     if type(name) ~= "table" then return tostring(name) end
-    return (player:GetDbLocaleIndex() == LOCALE_FRFR and name.frFR) or name.enUS or "?"
+    local locale = LocaleOf(player)
+    return name[locale] or (locale == "esMX" and name.esES) or name.enUS or "?"
 end
 
 -- ---------------------------------------------------------------------------
@@ -162,7 +198,6 @@ end
 -- ---------------------------------------------------------------------------
 
 local SMSG_ITEM_QUERY_SINGLE_RESPONSE = 0x058
-local LOCALES = { [0] = "enUS", "koKR", "frFR", "deDE", "zhCN", "zhTW", "esES", "esMX", "ruRU" }
 local MAX_STATS, MAX_DAMAGES, MAX_SPELLS, MAX_SOCKETS = 10, 2, 5, 3
 
 local function U32(p, v)
