@@ -63,11 +63,13 @@
     "characters": {
       "tables": ["mod_spheregrid_account_points", "mod_spheregrid_account_node",
                  "mod_spheregrid_character_points", "mod_spheregrid_character_node"],
+      "kept_on_update": ["mod_spheregrid_account_points", "mod_spheregrid_account_node",
+                         "mod_spheregrid_character_points", "mod_spheregrid_character_node"],
       "rows": [
-        { "table": "character_spell", "where": "spell IN ({ids:Spell.dbc})" },
-        { "table": "character_spell_cooldown", "where": "spell IN ({ids:Spell.dbc})" },
+        { "table": "character_spell", "where": "spell IN ({ids:Spell.dbc})", "kept_on_update": true },
+        { "table": "character_spell_cooldown", "where": "spell IN ({ids:Spell.dbc})", "kept_on_update": true },
         { "table": "character_aura", "where": "spell IN ({ids:Spell.dbc})" },
-        { "table": "character_action", "where": "type = 0 AND action IN ({ids:Spell.dbc})" },
+        { "table": "character_action", "where": "type = 0 AND action IN ({ids:Spell.dbc})", "kept_on_update": true },
         { "table": "updates", "where": "name IN ({sql_files:characters})" }
       ]
     },
@@ -87,14 +89,14 @@
           "where": "spell_id BETWEEN 85000 AND 86999 OR (spell_id = 24858 AND ScriptName = 'spell_spheregrid_moonkin_form')" },
         { "table": "spell_bonus_data", "where": "entry BETWEEN 85000 AND 86999" },
         { "table": "spell_custom_attr", "where": "spell_id BETWEEN 85000 AND 86999" },
-        { "table": "creature", "where": "id BETWEEN 85000 AND 86999" },
+        { "table": "creature", "where": "id BETWEEN 85000 AND 86999", "kept_on_update": true },
         { "table": "creature_template_model", "where": "CreatureID BETWEEN 85000 AND 86999" },
         { "table": "creature_template_locale", "where": "entry BETWEEN 85000 AND 86999" },
         { "table": "creature_template", "where": "entry BETWEEN 85000 AND 86999" },
         { "table": "creature_model_info", "where": "DisplayID BETWEEN 85000 AND 86999" },
         { "table": "creaturedisplayinfo_dbc", "where": "ID BETWEEN 85000 AND 86999" },
         { "table": "creaturemodeldata_dbc", "where": "ID BETWEEN 85000 AND 86999" },
-        { "table": "gameobject", "where": "id BETWEEN 850000 AND 869999" },
+        { "table": "gameobject", "where": "id BETWEEN 850000 AND 869999", "kept_on_update": true },
         { "table": "gameobject_template_locale", "where": "entry BETWEEN 850000 AND 869999" },
         { "table": "gameobject_template", "where": "entry BETWEEN 850000 AND 869999" },
         { "table": "command", "where": "name = 'spheregrid' OR name LIKE 'spheregrid %'" },
