@@ -170,7 +170,7 @@ Workbench.Register({
             end,
             Preview = function(player, e)
                 local quality = stones[e[1]].quality
-                return { icon = RANDOM_STONE .. string.lower(QUALITIES[quality]), quality = quality - 1,
+                return { icon = RANDOM_STONE .. string.lower(QUALITIES[quality]), quality = quality,
                          text = SphereGridTexts.Text(player, TEXT.random_stone) }
             end,
             Run = function(player, e) player:RunCommand(fmt("spheregrid reroll %d %d", e[1], e[2])) end,

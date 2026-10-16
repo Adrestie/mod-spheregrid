@@ -4,6 +4,9 @@ The version is the first word of the newest heading.
 
 ## 0.2.0 (unreleased)
 
+- The workbench's preview of a reroll is tinted with the quality of the
+  stones placed (two epic stones show an epic result), no longer the one
+  below: the module's qualities already are the game's item qualities.
 - Impalement bleeds for 120 + 0.09 x attack power per second. Its bleed
   had kept the placeholder 0.1234 through the balancing, and over twelve
   seconds outweighed the strike three times over. Server (`spell_bonus_data`),
