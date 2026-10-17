@@ -184,16 +184,19 @@ too, so a player who never walks past one is not shut out.
 
 ## Change what drops, and how often
 
-Every source is a setting, written as `object:quantity:percent`, `,` for a
-fallback, `;` between independent rolls:
+The items drop through DynamicLoot (the `dynamicloot` module). Every family
+of DynamicLoot is a setting, written as `item:quantity:percent`, `,` for a
+fallback, `;` between independent rolls; an item is its entry, or one of the
+lists `stones[1]` to `stones[5]` (a stone of that quality) and `runes[0]`:
 
 ```
-SphereGrid.Loot.WrathDungeonBoss = Luminous:2:20 ; RareStone:1:15
-SphereGrid.Drop.Nexus.Luminous   = 100           a factor on top, in percent
+SphereGrid.Loot.WotlkDungeonBoss = 85102:2:20 ; stones[3]:1:15
+SphereGrid.Loot.Rate             = 100        a factor on everything, in percent
 ```
 
-A source that cannot be read is reported at start-up and falls back on the
-built-in table. `.spheregrid reload` picks up a change.
+A line that cannot be read is reported at start-up and ignored; a family left
+out drops nothing. DynamicLoot reads them when the server starts: a change
+needs a restart.
 
 ## Add a language
 

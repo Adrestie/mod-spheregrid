@@ -152,23 +152,11 @@ INSERT INTO `module_string_locale` (`module`, `id`, `locale`, `string`) VALUES
 ('mod-spheregrid', 57, 'frFR', 'Nexus prismatiques : {} absorbé(s) — gains de Spherite majorés de {} %.');
 
 -- ------------------------------------------------------------------
--- Mercy on the drop rate
+-- Mercy on the drop rate: gone, the bad luck protection is DynamicLoot's
 -- ------------------------------------------------------------------
---
 
 DELETE FROM `module_string` WHERE `module` = 'mod-spheregrid' AND `id` IN (58, 59, 60, 61);
-INSERT INTO `module_string` (`module`, `id`, `string`) VALUES
-('mod-spheregrid', 58, 'Fate encourages you. Your chance of finding a Nexus is increased.'),
-('mod-spheregrid', 59, 'Fortune smiles upon you. You have a strong chance of finding a Nexus.'),
-('mod-spheregrid', 60, 'History will remember you as gloriously unlucky... but the wheel is about to turn!'),
-('mod-spheregrid', 61, 'please, go see a witch doctor or an exorcist, because at this point it is getting scary...');
-
 DELETE FROM `module_string_locale` WHERE `module` = 'mod-spheregrid' AND `id` IN (58, 59, 60, 61);
-INSERT INTO `module_string_locale` (`module`, `id`, `locale`, `string`) VALUES
-('mod-spheregrid', 58, 'frFR', 'Le destin vous encourage. Vous avez une chance accrue de trouver un Nexus'),
-('mod-spheregrid', 59, 'frFR', 'La chance vous sourit. Vous avez de grandes chances de trouver un Nexus'),
-('mod-spheregrid', 60, 'frFR', 'L''histoire se souviendra de vous comme d''un grand malchanceux... mais la roue va bientôt tourner !'),
-('mod-spheregrid', 61, 'frFR', 's''il te plait, va voir un marabou ou un exorciste car là, c''est flippant...');
 
 -- ------------------------------------------------------------------
 -- Grinding a stone or a rune

@@ -123,10 +123,13 @@ Everything an operator tunes is in `mod-spheregrid.conf`, and nothing else is:
 * what a statistic rune adds, as a percentage of what the grid already gives
 * what every kind of content awards — quests, levels, achievements, dungeon
   bosses and clears by tier, raid bosses by content tier, the workbench
-* what every source drops — each kind of monster, each vein and herb, each
-  skinning bracket, each kind of chest: its rolls, their fallbacks, quantities
-  and rates, one setting per source; and on top of it how often each object
-  drops wherever it appears. What makes a source is not a setting
+* what every source drops — each kind of monster, each kind of vein and herb,
+  each skinning bracket, each kind of chest: its rolls, their fallbacks,
+  quantities and rates, one setting per family of
+  [DynamicLoot](https://github.com/Adrestie/WoW-mods-dynamicloot), and one
+  rate factor on top of it all. DynamicLoot places the items, and holds the
+  grey boss brake and the bad luck protection; without it the grid works and
+  none of its items drops
 * the price of a step, its cap, and how many identical runes stack
 
 The interface reads the same file, so what it announces is what the module
@@ -225,7 +228,7 @@ data/dbc/                 the module's own DBC rows, and what was borrowed
 data/lua/                 the interface: editor, player window, workbench, spells
 data/sql/                 world and characters
 docs/                     what the interface draws, and what the grid says
-src/                      the C++ — core, crafting, loot, spells
+src/                      the C++ — core, crafting, spells
 tools/                    the client collector and the layout editor
 ```
 

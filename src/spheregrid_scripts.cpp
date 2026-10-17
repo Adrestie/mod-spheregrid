@@ -20,10 +20,15 @@
  *
  * The definition is loaded before the world opens, like any other custom data.
  * Reloading it at runtime goes through .spheregrid reload.
+ *
+ * The loot is not here: the items drop through DynamicLoot (the dynamicloot
+ * module), from the SphereGrid.Loot.* settings of mod-spheregrid.conf.
  */
 
 #include "EventProcessor.h"
 #include "Item.h"
+#include "Log.h"
+#include "ModuleMgr.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "QuestDef.h"
@@ -31,7 +36,6 @@
 #include "SphereGridStrings.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
-#include "SphereGridLoot.h"
 #include "SphereGridMgr.h"
 #include "SphereGridPlayerMgr.h"
 
@@ -46,6 +50,13 @@ public:
     void OnBeforeWorldInitialized() override
     {
         sSphereGridMgr->Load();
+
+        // Without DynamicLoot, the module works but none of its items drops.
+        for (std::string_view const module : Acore::Module::GetEnableModulesList())
+            if (module == "dynamicloot")
+                return;
+        LOG_WARN("module", "SphereGrid: the dynamicloot module is not on this server: the sphere grid works, "
+            "but none of its items drops (Nexuses, stones, runes). Install DynamicLoot.");
     }
 };
 
@@ -80,8 +91,6 @@ public:
     void OnPlayerLogout(Player* player) override
     {
         sSphereGridPlayerMgr->Unload(player);
-        // Bad-luck protection does not outlive the session.
-        SphereGridForgetPity(player);
     }
 
     void OnPlayerCreatureKill(Player* killer, Creature* killed) override
@@ -238,30 +247,10 @@ class spell_spheregrid_prism : public SpellScript
     }
 };
 
-// Injecting the sphere grid items into loot. The hook fires on EVERY loot the
-// server fills: the sorting happens in SphereGridFillLoot, from the loot store
-// onwards, before anything is read.
-class SphereGridLootScript : public MiscScript
-{
-public:
-    SphereGridLootScript() : MiscScript("SphereGridLootScript",
-        {
-            MISCHOOK_ON_AFTER_LOOT_TEMPLATE_PROCESS
-        }) { }
-
-    void OnAfterLootTemplateProcess(Loot* loot, LootTemplate const* /*tab*/,
-        LootStore const& store, Player* lootOwner, bool /*personal*/,
-        bool /*noEmptyError*/, uint16 /*lootMode*/) override
-    {
-        SphereGridFillLoot(loot, store, lootOwner);
-    }
-};
-
 void AddSC_spheregrid_scripts()
 {
     new SphereGridWorldScript();
     new SphereGridPlayerScript();
-    new SphereGridLootScript();
     RegisterSpellScript(spell_spheregrid_sphere);
     RegisterSpellScript(spell_spheregrid_prism);
 }

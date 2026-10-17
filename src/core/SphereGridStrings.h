@@ -96,12 +96,8 @@ enum SphereGridStrings : uint32
     SPHEREGRID_STR_PRISM             = 56,   // prismatic Nexus absorbed: +N %
     SPHEREGRID_STR_STATUS_PRISMS     = 57,   // .spheregrid status: prisms and their boost
 
-    // Bad-luck protection: one message per threshold crossed, never twice for
-    // the same one.
-    SPHEREGRID_STR_PITY_25           = 58,
-    SPHEREGRID_STR_PITY_50           = 59,
-    SPHEREGRID_STR_PITY_75           = 60,
-    SPHEREGRID_STR_PITY_100          = 61,
+    // 58 to 61: the bad-luck protection messages, gone with the loot to
+    // DynamicLoot. Not to be reused.
 
     // Grinding: the fourth workbench recipe, the one that returns Spherite
     // instead of an item.

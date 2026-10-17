@@ -4,6 +4,20 @@ The version is the first word of the newest heading.
 
 ## 0.2.0 (unreleased)
 
+- The loot goes to DynamicLoot, the shared loot extension (`dynamicloot`,
+  listed in `dependencies`): `src/loot/` is gone, and the module's items drop
+  from `SphereGrid.Loot.<Family>` lines DynamicLoot reads at start-up, items
+  named by entry, stones and runes by list. The rates are the same, except
+  where DynamicLoot's families group sources the module told apart: rich
+  cobalt, rich saronite, Tiger Lily and Lichbloom take the rate of their
+  family's common node, Frost Lotus Icethorn's (no more Irradiant Nexus), the
+  corpses gathered by herbalism, mining or engineering one rate per
+  expansion. Raid chests are gone: a boss's chest drops the boss's loot. Only
+  the real chests DynamicLoot lists drop anything. One factor,
+  `SphereGrid.Loot.Rate`, replaces the `SphereGrid.Drop.*` ones. The bad luck
+  protection is DynamicLoot's, shared by every module: it boosts the stones
+  and runes as well, any item won resets it, and its messages are gone.
+  Without DynamicLoot, a warning at start-up, and nothing drops.
 - The workbench's preview of a reroll is tinted with the quality of the
   stones placed (two epic stones show an epic result), no longer the one
   below: the module's qualities already are the game's item qualities.
