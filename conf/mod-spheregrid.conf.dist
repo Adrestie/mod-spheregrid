@@ -230,30 +230,50 @@ SphereGrid.Loot.NoPity = [85105]
 #    everything outside an instance, its world bosses and rares apart.
 #
 
-SphereGrid.Loot.IcecrownRaidBoss = 85105:1:2 ; 85104:1:25 , 85103:1:100 ; stones[5]:1:25 , stones[4]:2:50 , stones[4]:1:100 ; runes[0]:1:33
-SphereGrid.Loot.WotlkRaidBoss = 85105:1:2 ; 85103:1:100 ; stones[4]:1:100 ; runes[0]:1:10
-SphereGrid.Loot.WotlkRaidTrash = 85102:1:5 ; stones[4]:1:2 ; runes[0]:1:2
-SphereGrid.Loot.WotlkHeroicBoss = 85102:1:25 ; stones[3]:1:25
-SphereGrid.Loot.WotlkHeroicTrash = 85102:1:6 ; stones[3]:1:6
-SphereGrid.Loot.WotlkDungeonBoss = 85102:2:20 ; stones[3]:1:15
-SphereGrid.Loot.WotlkDungeonTrash = 85102:1:5 ; stones[2]:1:4
-SphereGrid.Loot.WotlkWorld = 85102:1:5 ; stones[2]:1:3
-SphereGrid.Loot.WotlkWorldBoss = 85102:1:5 ; stones[2]:1:3
-SphereGrid.Loot.WotlkRare = 85102:1:5 ; stones[2]:1:3
-SphereGrid.Loot.BcRaidBoss = 85101:2:7 ; stones[2]:1:15
-SphereGrid.Loot.BcRaidTrash = 85101:1:8 ; stones[2]:1:5
-SphereGrid.Loot.BcDungeonBoss = 85101:1:5 ; stones[1]:1:5
-SphereGrid.Loot.BcDungeonTrash = 85101:1:5.5 ; stones[1]:1:5
-SphereGrid.Loot.BcWorld = 85101:1:5 ; stones[1]:1:3
-SphereGrid.Loot.BcWorldBoss = 85101:1:5 ; stones[1]:1:3
-SphereGrid.Loot.BcRare = 85101:1:5 ; stones[1]:1:3
-SphereGrid.Loot.VanillaRaidBoss = 85101:2:7
-SphereGrid.Loot.VanillaRaidTrash = 85100:1:8
-SphereGrid.Loot.VanillaDungeonBoss = 85100:1:5
-SphereGrid.Loot.VanillaDungeonTrash = 85100:1:5.5
+# Any creature of the open world, its world bosses and its rares (a rare of a
+# dungeon plays its Rare line as well).
 SphereGrid.Loot.VanillaWorld = 85100:1:5
 SphereGrid.Loot.VanillaWorldBoss = 85100:1:5
 SphereGrid.Loot.VanillaRare = 85100:1:5
+SphereGrid.Loot.BcWorld = 85101:1:5 ; stones[1]:1:3
+SphereGrid.Loot.BcWorldBoss = 85101:1:5 ; stones[1]:1:3
+SphereGrid.Loot.BcRare = 85101:1:5 ; stones[1]:1:3
+SphereGrid.Loot.WotlkWorld = 85102:1:5 ; stones[2]:1:3
+SphereGrid.Loot.WotlkWorldBoss = 85102:1:5 ; stones[2]:1:3
+SphereGrid.Loot.WotlkRare = 85102:1:5 ; stones[2]:1:3
+
+# The other monsters of dungeons and raids (trash).
+SphereGrid.Loot.VanillaDungeonTrash = 85100:1:5.5
+SphereGrid.Loot.BcDungeonTrash = 85101:1:5.5 ; stones[1]:1:5
+SphereGrid.Loot.WotlkDungeonTrash = 85102:1:5 ; stones[2]:1:4
+SphereGrid.Loot.WotlkHeroicTrash = 85102:1:6 ; stones[3]:1:6
+SphereGrid.Loot.VanillaRaidTrash = 85100:1:8
+SphereGrid.Loot.BcRaidTrash = 85101:1:8 ; stones[2]:1:5
+SphereGrid.Loot.WotlkRaidTrash = 85102:1:5 ; stones[4]:1:2 ; runes[0]:1:2
+
+# A dungeon boss, normal or heroic.
+SphereGrid.Loot.VanillaDungeonBoss = 85100:1:5
+SphereGrid.Loot.BcDungeonBoss = 85101:1:5 ; stones[1]:1:5
+SphereGrid.Loot.WotlkDungeonBoss = 85102:2:20 ; stones[3]:1:15
+SphereGrid.Loot.WotlkHeroicBoss = 85102:1:25 ; stones[3]:1:25
+
+# A raid boss.
+SphereGrid.Loot.VanillaRaidBoss = 85101:2:7
+SphereGrid.Loot.BcRaidBoss = 85101:2:7 ; stones[2]:1:15
+SphereGrid.Loot.WotlkRaidBoss = 85105:1:2 ; 85103:1:100 ; stones[4]:1:100 ; runes[0]:1:10
+SphereGrid.Loot.IcecrownRaidBoss = 85105:1:2 ; 85104:1:25 , 85103:1:100 ; stones[5]:1:25 , stones[4]:2:50 , stones[4]:1:100 ; runes[0]:1:33
+
+# By the creature's level, wherever it stands, on top of the lines above: no
+# source yet. Remove the "#" to make one drop, for instance a Nexus at 1 %:
+#SphereGrid.Loot.MobLvl_1_9 = 85100:1:1
+#SphereGrid.Loot.MobLvl_10_19 = 85100:1:1
+#SphereGrid.Loot.MobLvl_20_29 = 85100:1:1
+#SphereGrid.Loot.MobLvl_30_39 = 85100:1:1
+#SphereGrid.Loot.MobLvl_40_49 = 85100:1:1
+#SphereGrid.Loot.MobLvl_50_59 = 85100:1:1
+#SphereGrid.Loot.MobLvl_60_69 = 85100:1:1
+#SphereGrid.Loot.MobLvl_70_79 = 85100:1:1
+#SphereGrid.Loot.MobLvl_80_89 = 85100:1:1
 
 #
 #    VEINS AND HERBS
@@ -301,6 +321,15 @@ SphereGrid.Loot.WotlkCorpseSalvage = 85102:1:5
 SphereGrid.Loot.WorldChest = 85100:1:12
 SphereGrid.Loot.DungeonChest = 85100:3:10
 SphereGrid.Loot.HeroicDungeonChest = 85100:5:10
+
+#
+#    INVENTORY CONTAINERS, the lockboxes and crates opened from the bags: no
+#    source yet. Remove the "#" to make one drop, for instance:
+#
+
+#SphereGrid.Loot.VanillaContainer = 85100:1:5
+#SphereGrid.Loot.BcContainer = 85101:1:5
+#SphereGrid.Loot.WotlkContainer = 85102:1:5
 
 ###############################################################################
 #
