@@ -212,6 +212,13 @@ The version is the first word of the newest heading.
   overflowed the client's texture buffer. It is now 1024 x 512 (halved, top
   half kept, 16 MB down to 2 MB), uncompressed BLP2 with its alpha;
   `RC.FRAME_COORDS` follows, and the collector leaves the sheet as it is.
+- With ForeverUI, the sphere grid is a tab of the Progression window, after
+  Attriboost, Item Upgrade and Stellar Tarot, instead of a micro button of its
+  own: `Progression_Client.lua` carries the window's common code, the same
+  in every module that has a tab there. The tab asks the window for the size
+  the grid had; its icon is the arcane orb in the shape of ForeverUI's tab
+  icons (`Interface/Spheregrid/tab_sphere.blp`), next to the window's
+  portrait. Without ForeverUI, nothing changes: the tab on the talent window.
 
 ## 0.1.0
 

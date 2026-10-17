@@ -19,15 +19,14 @@
     Sphere grid — the Camelot look of the player window, client side (shipped
     by AIO)
 
-    When the ForeverUI interface is on the client, the player window wears
-    Camelot's frame and the way in is a button of ForeverUI's micro menu.
-    Without it, nothing here is used and the window keeps its own look.
+    When the ForeverUI interface is on the client, the sphere grid is a tab of
+    the Progression window (Progression_Client.lua), and this file gives its
+    content Camelot's insets, red buttons and dialog boxes. Without ForeverUI,
+    nothing here is used and the window keeps its own look.
 
-    From ForeverUI this file takes only:
-      * the texture FILES it installs (Interface\ForeverUI\...), with their
-        coordinates copied into ART below;
-      * its micro menu: ForeverUI.AddMicroButton and ForeverUI.UpdateMicro.
-    It calls none of ForeverUI's drawing functions.
+    From ForeverUI this file takes only the texture FILES it installs
+    (Interface\ForeverUI\...), with their coordinates copied into ART below.
+    It calls none of ForeverUI's functions.
 
     Camelot sources (blizzard_sharedxml): DefaultPanelTemplate and
     InsetFrameTemplate (mainline/shareduipaneltemplates.xml), the
@@ -80,7 +79,6 @@ local ART = {
     ["128-redbutton-right-disabled"] = { "Interface\\ForeverUI\\buttons\\128-redbutton-right-disabled-c60", 0.003906, 0.574219, 0, 1, 292, 128 },
     ["128-redbutton-highlight"] = { "Interface\\ForeverUI\\buttons\\128-redbutton-highlight", 0.003906, 0.865234, 0, 1, 441, 128 },
     ["ui-diamonddialogbox-border"] = { "Interface\\ForeverUI\\dialogframe\\uiframediamondmetalborder2xc60", 0.003906, 0.550781, 0.003906, 0.550781, 70, 70 },
-    ["ui-hud-micromenu-buttonbg-down-c60-2x"] = { "Interface\\ForeverUI\\hud\\uimicromenuc602x", 0.000977, 0.063477, 0.658203, 0.818359, 32, 41 },
 }
 
 -- Whole files, tiled
@@ -113,12 +111,7 @@ C.WINDOW = {
 }
 C.DIALOG = { background = 7, cut = 32, close = { side = 24, x = -3, y = -3 } }
 
--- The micro button: the empty camelot button ("buttonbg" set), with a round
--- picture of the sphere drawn on it, 1 lower while pushed.
-C.MICRO = { name = "SphereGridMicroButton", set = "buttonbg", icon = "Interface\\Icons\\inv_112_arcane_orb",
-            side = 20, x = 0, y = 1, pushedY = -1, highlightAlpha = 0.4 }
-
--- ForeverUI is on the client and offers its micro menu
+-- ForeverUI is on the client
 function C.Available()
     return ForeverUI ~= nil and type(ForeverUI.AddMicroButton) == "function"
 end
@@ -377,46 +370,4 @@ function C.RedButton(parent, text)
     b:HookScript("OnDisable", function(self) paint(self, "NORMAL") end)
     paint(b, "NORMAL")
     return b
-end
-
--- THE MICRO BUTTON. ForeverUI draws the empty camelot button; the sphere is
--- drawn here, round (SetPortraitToTexture), with a glow on hover like the
--- character button's. def: tooltip (text or function), onClick.
-local function decorate(b)
-    local M = C.MICRO
-    local sphere = b:CreateTexture(nil, "OVERLAY")
-    sphere:SetWidth(M.side)
-    sphere:SetHeight(M.side)
-    SetPortraitToTexture(sphere, M.icon)
-    local function follow()
-        sphere:ClearAllPoints()
-        local pushed = b:GetButtonState() == "PUSHED"
-        sphere:SetPoint("CENTER", b, "CENTER", M.x, M.y + (pushed and M.pushedY or 0))
-    end
-    follow()
-    hooksecurefunc(b, "SetButtonState", follow)
-    b:HookScript("OnMouseDown", follow)
-    b:HookScript("OnMouseUp", follow)
-    if not b:GetHighlightTexture() then
-        local glow = buttonState(b, "SetHighlightTexture", "GetHighlightTexture", "ui-hud-micromenu-buttonbg-down-c60-2x")
-        glow:SetBlendMode("ADD")
-        glow:SetAlpha(M.highlightAlpha)
-    end
-end
-
-function C.AddMicroButton(def)
-    return ForeverUI.AddMicroButton({
-        name = C.MICRO.name,
-        atlasSet = C.MICRO.set,
-        tooltip = def.tooltip,
-        onClick = def.onClick,
-        ready = decorate,
-    })
-end
-
--- Pushes the micro button while the window is open
-function C.UpdateMicro(isOpen)
-    if ForeverUI and ForeverUI.UpdateMicro then
-        ForeverUI.UpdateMicro(C.MICRO.name, isOpen and true or false)
-    end
 end

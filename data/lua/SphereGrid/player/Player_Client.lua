@@ -28,9 +28,10 @@
     and messages).
 
     The way in: a « Sphere grid » button on the talent window, /spheregrid,
-    .spheregrid show. With ForeverUI, a button of its micro menu instead of the
-    tab, and Camelot's look (Camelot_Client.lua). Texts in the client's
-    language, sent by the server from the module's tables.
+    .spheregrid show. With ForeverUI, a tab of the Progression window
+    (Progression_Client.lua) instead of the talent window's, and Camelot's look
+    (Camelot_Client.lua). Texts in the client's language, sent by the server
+    from the module's tables.
 ------------------------------------------------------------------------------]]
 
 local AIO = AIO or require("AIO")
@@ -149,6 +150,30 @@ RC.ART_DIR      = "Interface\\Spheregrid\\"
 RC.LINE_TEXTURE = RC.ART_DIR .. "line"
 RC.LINEFACTOR_2 = (128 / 126) / 2
 RC.ARC_TEXTURES = { RC.ART_DIR .. "arc1", RC.ART_DIR .. "arc2", RC.ART_DIR .. "arc3" }
+
+-- THE WINDOW TAKES THE SCREEN: four fifths of the width, six sevenths of the
+-- height, never less than it was (1000 x 680). Everything else anchors to the
+-- edges, so the grid gains whatever the window gains. The Progression window
+-- asks the same size for this tab, and shrinks itself on a smaller screen.
+function RC.WindowWidth()
+    return max(1000, min(1700, floor((UIParent:GetWidth() or 1024) * 0.80)))
+end
+function RC.WindowHeight()
+    return max(680, min(1050, floor((UIParent:GetHeight() or 768) * 0.86)))
+end
+
+-- THE PROGRESSION WINDOW (ForeverUI on the client, Progression_Client.lua): the
+-- sphere grid is a tab of it, after Attriboost (1), Item Upgrade (2) and Stellar
+-- Tarot (3). The icon is the arcane orb cut to the shape of ForeverUI's tab
+-- icons; the portrait is the window's, the same image every module ships, used
+-- by whichever module creates the window. RC.page: the tab's page, once built.
+RC.TAB_KEY      = "spheregrid"
+RC.TAB_ORDER    = 4
+RC.TAB_ICON     = RC.ART_DIR .. "tab_sphere"
+RC.TAB_PORTRAIT = RC.ART_DIR .. "legacy-up-c60-masque"
+-- The window's name, should the sphere grid be the module that creates it.
+RC.WINDOW_NAME  = ({ frFR = "Progression", deDE = "Fortschritt", esES = "Progresión",
+                     esMX = "Progresión", ruRU = "Развитие" })[GetLocale()] or "Progression"
 
 -- AN ICON'S FRAME. The round icon sits in ARTWORK and, over it in OVERLAY, this
 -- ring of the client's: transparent centre, opaque band, transparent outside.
@@ -2583,15 +2608,20 @@ local function BuildUI()
         insets = { left = 11, right = 12, top = 12, bottom = 11 },
     }
 
-    local f = CreateFrame("Frame", "SphereGridPlayerFrame", UIParent)
-    -- THE WINDOW TAKES THE SCREEN: four fifths of the width, six sevenths of the
-    -- height, never less than it was (1000 x 680). Everything else anchors to the
-    -- edges, so the grid gains whatever the window gains.
-    local screenW, screenH = UIParent:GetWidth() or 1024, UIParent:GetHeight() or 768
-    f:SetWidth(max(1000, min(1700, floor(screenW * 0.80))))
-    f:SetHeight(max(680, min(1050, floor(screenH * 0.86))))
-    f:SetPoint("CENTER")
-    if camelot then
+    -- IN THE PROGRESSION WINDOW (ForeverUI), the content fills the tab's page: the
+    -- window draws the frame, the title, the close button and the tabs, and is the
+    -- one that moves; the insets are the same, its frame being Camelot's too.
+    local f = CreateFrame("Frame", "SphereGridPlayerFrame", RC.page or UIParent)
+    if RC.page then
+        f:SetAllPoints(RC.page)
+    else
+        f:SetWidth(RC.WindowWidth())
+        f:SetHeight(RC.WindowHeight())
+        f:SetPoint("CENTER")
+    end
+    if RC.page then
+        -- nothing to draw: the window wears Camelot's frame already
+    elseif camelot then
         camelot.Window(f, L.title, function() f:Hide() end)
     else
         f:SetBackdrop(backdrop)
@@ -2600,24 +2630,23 @@ local function BuildUI()
         f:SetBackdropColor(1, 1, 1, 1)
         f:SetBackdropBorderColor(1, 1, 1, 1)
     end
-    f:SetMovable(true)
     f:EnableMouse(true)
-    f:SetToplevel(true)
+    if not RC.page then
+        f:SetMovable(true)
+        f:SetToplevel(true)
+    end
     f:Hide()
     -- The picker list and the item in hand are satellites of the window: they do not
-    -- outlive it. With Camelot, the micro button stays pushed while it is open.
+    -- outlive it -- nor the tab's page, whose hiding hides this frame too.
     f:SetScript("OnHide", function()
         ACT.ClosePicker()
         ACT.PutDown()
-        if camelot then camelot.UpdateMicro(false) end
     end)
-    if camelot then
-        f:SetScript("OnShow", function() camelot.UpdateMicro(true) end)
-    end
     -- Escape closes the window: the client empties `UISpecialFrames` on every press,
     -- and what is not listed there never leaves that way. The `OnHide` above does the
-    -- tidying, so leaving by Escape is worth leaving by the button.
-    table.insert(UISpecialFrames, "SphereGridPlayerFrame")
+    -- tidying, so leaving by Escape is worth leaving by the button. The Progression
+    -- window is a panel of the game's: Escape closes it already.
+    if not RC.page then table.insert(UISpecialFrames, "SphereGridPlayerFrame") end
     UI = f
     UI.freeButtons = {}
     UI.linePool    = { free = {}, used = {} }
@@ -2634,9 +2663,11 @@ local function BuildUI()
     header:SetPoint("TOPRIGHT", -insetR, -insetT)
     header:SetHeight(RC.HEADER_H)
     header:EnableMouse(true)
-    header:RegisterForDrag("LeftButton")
-    header:SetScript("OnDragStart", function() f:StartMoving() end)
-    header:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
+    if not RC.page then
+        header:RegisterForDrag("LeftButton")
+        header:SetScript("OnDragStart", function() f:StartMoving() end)
+        header:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
+    end
     local title
     if not camelot then
         local hBackground = header:CreateTexture(nil, "BACKGROUND")
@@ -3030,6 +3061,14 @@ end
 -- state travels. Without a definition in hand for all that, we ask for everything
 -- again.
 function PlayerHandlers.Show(_, wire, state, version)
+    -- In the Progression window, the tab opens first: that builds the page the
+    -- content goes on. Shown this way, the page does not ask the server again.
+    if RC.fui then
+        RC.opening = true
+        if not Progression.Montree(RC.TAB_KEY) then Progression.Ouvrir(RC.TAB_KEY) end
+        RC.opening = nil
+        if not RC.page then return end
+    end
     EnsureUI()
 
     if wire then
@@ -3068,12 +3107,14 @@ function PlayerHandlers.Update(_, state)
 end
 
 -- ---------------------------------------------------------------------------
--- The way in: a button on the talent window (a button of ForeverUI's micro menu
--- when ForeverUI is there), /spheregrid
+-- The way in: a tab of the Progression window when ForeverUI is there, a button
+-- on the talent window otherwise; /spheregrid either way
 -- ---------------------------------------------------------------------------
 
 local function Toggle()
-    if UI and UI:IsShown() then
+    if RC.fui then
+        Progression.Basculer(RC.TAB_KEY)    -- the page, as it shows, asks the server
+    elseif UI and UI:IsShown() then
         UI:Hide()
     else
         AIO.Handle("SphereGridPlayer", "Open", DEF_VERSION)
@@ -3114,13 +3155,27 @@ local function HookTalents()
 end
 
 -- Decided on the next frame, once every file AIO sent has run: Camelot_Client.lua
--- may come after this one.
+-- and Progression_Client.lua may come after this one. With ForeverUI, a tab of
+-- the Progression window (built the first time it shows; each showing asks the
+-- server for the grid); without it, the tab on the talent window.
 local ev = CreateFrame("Frame")
 ev:SetScript("OnUpdate", function(self)
     self:SetScript("OnUpdate", nil)
-    if SphereGridCamelot and SphereGridCamelot.Available() then
-        SphereGridCamelot.AddMicroButton({ tooltip = L.title, onClick = Toggle })
-        return
+    if Progression and Progression.Ajouter and Progression.Kit then
+        RC.fui = Progression.Ajouter({
+            cle = RC.TAB_KEY, ordre = RC.TAB_ORDER, icone = RC.TAB_ICON,
+            titre = function() return L.title end,
+            nomFenetre = function() return RC.WINDOW_NAME end,
+            portrait = RC.TAB_PORTRAIT,
+            taille = { RC.WindowWidth(), RC.WindowHeight() },
+            construire = function(page)
+                RC.page = page
+                page:SetScript("OnShow", function()
+                    if not RC.opening then AIO.Handle("SphereGridPlayer", "Open", DEF_VERSION) end
+                end)
+            end,
+        }) and true or nil
+        if RC.fui then return end
     end
     self:RegisterEvent("ADDON_LOADED")
     self:SetScript("OnEvent", function(_, _, addon)
@@ -3159,7 +3214,7 @@ hooksecurefunc("UseContainerItem", function(bag, slotName)
     if not entry then return end
     if not (ACT.Socketable(entry) or ACT.IsPin(entry)) then return end
 
-    if not (UI and UI:IsShown()) then AIO.Handle("SphereGridPlayer", "Open", DEF_VERSION) end
+    if not (UI and UI:IsVisible()) then AIO.Handle("SphereGridPlayer", "Open", DEF_VERSION) end
     ACT.TakeInHand(entry)
 end)
 
@@ -3187,13 +3242,13 @@ mixer:SetScript("OnUpdate", function(self, delta)
     self.elapsed = self.elapsed + delta
     if self.elapsed < PULSE then return end
     self.elapsed = 0
-    if UI and UI:IsShown() then
+    if UI and UI:IsVisible() then
         AIO.Handle("SphereGridPlayer", "Points")
     end
 end)
 
 function PlayerHandlers.Points(_, available)
-    if not UI or not UI:IsShown() or not STATE then return end
+    if not UI or not UI:IsVisible() or not STATE then return end
     if available == STATE.available then return end
     AIO.Handle("SphereGridPlayer", "Refresh")
 end
