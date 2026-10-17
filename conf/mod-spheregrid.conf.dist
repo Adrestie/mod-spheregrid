@@ -250,6 +250,7 @@ SphereGrid.Loot.WotlkHeroicTrash = 85102:1:6 ; stones[3]:1:6
 SphereGrid.Loot.VanillaRaidTrash = 85100:1:8
 SphereGrid.Loot.BcRaidTrash = 85101:1:8 ; stones[2]:1:5
 SphereGrid.Loot.WotlkRaidTrash = 85102:1:5 ; stones[4]:1:2 ; runes[0]:1:2
+SphereGrid.Loot.IcecrownRaidTrash = 85102:1:5 ; stones[4]:1:2 ; runes[0]:1:2
 
 # A dungeon boss, normal or heroic.
 SphereGrid.Loot.VanillaDungeonBoss = 85100:1:5
