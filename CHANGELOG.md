@@ -219,6 +219,11 @@ The version is the first word of the newest heading.
   the grid had; its icon is the arcane orb in the shape of ForeverUI's tab
   icons (`Interface/Spheregrid/tab_sphere.blp`), next to the window's
   portrait. Without ForeverUI, nothing changes: the tab on the talent window.
+- The window opens on the last cell bought (the whole grid before any). The
+  characters table `mod_spheregrid_character_node` gains `bought_at`, dated by
+  the database on every purchase -- the module buys with a REPLACE -- so the
+  C++ is unchanged; `spheregrid_02_bought_at.sql` adds it to an existing
+  database, and the server looks for the column before using it.
 
 ## 0.1.0
 

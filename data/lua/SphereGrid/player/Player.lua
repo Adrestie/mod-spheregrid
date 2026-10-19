@@ -428,6 +428,26 @@ end
 -- for the next purchase: every cell has its own, sent in the wire and shown in
 -- the tooltip. The field was dropped rather than repaired.
 
+-- THE LAST CELL BOUGHT, where the window opens. `bought_at` is set by the
+-- database itself (DEFAULT CURRENT_TIMESTAMP(6)) on every purchase -- the
+-- module buys with a REPLACE, a fresh row -- and left alone by the UPDATEs
+-- that socket, pin or reset. A database the column has not reached yet would
+-- fail the query: it is looked for first, and once found, no longer.
+local boughtAtKnown = false
+
+local function LastBought(guid)
+    if not boughtAtKnown then
+        local c = CharDBQuery("SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() "
+            .. "AND TABLE_NAME = 'mod_spheregrid_character_node' AND COLUMN_NAME = 'bought_at'")
+        if not c then return nil end
+        boughtAtKnown = true
+    end
+    local q = CharDBQuery(fmt(
+        "SELECT node_id FROM mod_spheregrid_character_node WHERE guid = %d AND active = 1 "
+        .. "ORDER BY bought_at DESC, node_id DESC LIMIT 1", guid))
+    return q and q:GetUInt32(0) or nil
+end
+
 local function LoadState(player, def)
     local guid = player:GetGUIDLow()
     local actives, content, raw, activeCount = {}, {}, {}, 0
@@ -518,6 +538,8 @@ local function LoadState(player, def)
         requiredOk     = requiredOk,
         activeCount     = activeCount,
         available  = (earned > spent) and (earned - spent) or 0,
+        -- The cell the window opens on: the last one bought (nil before any).
+        last       = activeCount > 0 and LastBought(guid) or nil,
     }
 end
 

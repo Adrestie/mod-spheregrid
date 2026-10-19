@@ -3097,7 +3097,13 @@ function PlayerHandlers.Show(_, wire, state, version)
     Rebuild()
     -- An item may have been taken in hand BEFORE the window existed.
     ACT.UpdateBanner()
-    CentreOn((bounds.minx + bounds.maxx) / 2, (bounds.miny + bounds.maxy) / 2)
+    -- The view opens on the last cell bought; before any, on the whole grid.
+    local last = STATE and STATE.last and nodeById[STATE.last]
+    if last then
+        CentreOn(last.x, last.y)
+    else
+        CentreOn((bounds.minx + bounds.maxx) / 2, (bounds.miny + bounds.maxy) / 2)
+    end
 end
 
 function PlayerHandlers.Update(_, state)

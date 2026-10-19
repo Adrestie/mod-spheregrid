@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS `mod_spheregrid_character_node` (
   `content_upgrade` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'upgrade level, runes only',
   `forgotten` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'spell forgotten with the pin: a new purchase teaches it again',
   `active` TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '0 = cell given back by a reset: it keeps its content, it is no longer bought',
+  `bought_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT 'set by the database on every purchase (a REPLACE): the window opens on the last one',
   PRIMARY KEY (`guid`, `node_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='SphereGrid: the cells one character has bought';
