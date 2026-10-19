@@ -67,6 +67,8 @@ end
 --   * sa micro-barre : ForeverUI.AddMicroButton (le bouton, avec le jeu
 --     d'icônes « legacy » de ForeverUI) et ForeverUI.UpdateMicro (enfoncé tant
 --     que la fenêtre est ouverte).
+--   * sa barre d'action, s'il l'a : ForeverUI.TabMacros, pour poser un
+--     onglet sur une barre (2026-10-19).
 -- Sans ForeverUI.AddMicroButton, la fenêtre n'existe pas, et les modules
 -- gardent leur interface d'origine.
 --
@@ -655,6 +657,23 @@ if not (Progression and Progression.Ajouter) and ForeverUI and ForeverUI.AddMicr
 
     -- ------------------------------------------------------------ les onglets
 
+    -- SUR UNE BARRE D'ACTION (demande du 2026-10-19 : « le joueur doit pouvoir
+    -- drag & drop l'icone d'un onglet dans sa barre d'action. si le joueur
+    -- clique sur ces icones, il faut ouvrir l'interface correspondante ») :
+    -- avec ForeverUI.TabMacros (sa barre d'action), l'onglet glissé devient une
+    -- macro qui bascule sa page (P.Basculer) ; sur la barre, elle porte
+    -- l'icône de l'onglet. Le corps se lit au clic : la fenêtre peut ne pas
+    -- encore exister.
+    local function corpsMacro(cle)
+        return '/run if Progression then Progression.Basculer("' .. cle .. '") end'
+    end
+    local function infoMacro(cle)
+        return {
+            name = function() local d = P.pages[cle] return d and texte(d.titre) end,
+            icon = function() local d = P.pages[cle] return d and d.icone end,
+        }
+    end
+
     local function creerOnglet(f, k)
         local O = N.onglet
         local b = CreateFrame("Button", "ProgressionTab" .. k, f)
@@ -698,6 +717,13 @@ if not (Progression and Progression.Ajouter) and ForeverUI and ForeverUI.AddMicr
         b:SetScript("OnClick", function(self)
             if self.cle then P.Choisir(self.cle) end
         end)
+        if ForeverUI and ForeverUI.TabMacros then
+            ForeverUI.TabMacros.EnableDrag(b, function(self)
+                if self.cle and P.pages[self.cle] then
+                    return corpsMacro(self.cle), infoMacro(self.cle)
+                end
+            end)
+        end
         if k == 1 then
             b:SetPoint("TOPLEFT", f, "TOPRIGHT", 0, O.y)
         else
@@ -886,6 +912,9 @@ if not (Progression and Progression.Ajouter) and ForeverUI and ForeverUI.AddMicr
         }
         table.sort(P.ordre, avant)
         if montree then P.Choisir(d.cle) end
+        if ForeverUI and ForeverUI.TabMacros then
+            ForeverUI.TabMacros.Register(corpsMacro(d.cle), infoMacro(d.cle))
+        end
         majOnglets()
         majMicro()
         return page
